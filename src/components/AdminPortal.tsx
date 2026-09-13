@@ -330,17 +330,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           )}
 
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-white">
+            <h1 className="font-display text-xl sm:text-2xl font-bold tracking-[0.16em] uppercase text-white">
               {settings.heading || 'secretsociety_ind'}
             </h1>
-            <p className="text-xs uppercase tracking-widest text-white/70 font-medium mt-1">
+            <p className="font-mono text-xs uppercase tracking-[0.25em] text-white/70 font-medium mt-1">
               Admin Portal
             </p>
           </div>
 
           <form onSubmit={handleAuthSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs uppercase tracking-wider text-white/80 mb-2">
+              <label className="block font-mono text-xs uppercase tracking-wider text-white/80 mb-2">
                 Council Password
               </label>
               <input
@@ -351,11 +351,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   setAuthError(false);
                 }}
                 placeholder="Enter password..."
-                className="w-full text-center px-4 py-2.5 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
+                className="w-full font-mono text-center tracking-widest px-4 py-2.5 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
                 autoFocus
               />
               {authError && (
-                <p className="text-xs text-white/90 mt-2 border border-white/40 bg-black py-1 px-2 rounded">
+                <p className="font-mono text-xs text-white/90 mt-2 border border-white/40 bg-black py-1 px-2 rounded">
                   Access denied. Incorrect council password.
                 </p>
               )}
@@ -363,7 +363,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
             <button
               type="submit"
-              className="w-full py-2.5 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs uppercase tracking-wider font-semibold transition-colors"
+              className="w-full py-2.5 rounded-lg bg-white text-black hover:bg-neutral-200 font-display text-xs uppercase tracking-[0.2em] font-bold transition-colors"
             >
               Authenticate
             </button>
@@ -373,9 +373,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             <button
               type="button"
               onClick={onNavigateToCandidate}
-              className="text-xs text-white/70 hover:text-white transition-colors"
+              className="font-mono text-xs text-white/70 hover:text-white transition-colors"
             >
-              Return to Candidate View
+              ← Return to Candidate View
             </button>
           </div>
         </div>
@@ -404,14 +404,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           )}
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-white">
+              <h1 className="font-display text-2xl font-bold tracking-[0.14em] uppercase text-white">
                 {settings.heading || 'secretsociety_ind'}
               </h1>
-              <span className="text-xs uppercase px-2 py-0.5 rounded border border-white/20 bg-white/5 text-white font-medium">
+              <span className="font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded border border-white/20 bg-white/5 text-white font-medium">
                 Admin Portal
               </span>
             </div>
-            <p className="text-xs text-white/70 mt-1">
+            <p className="font-mono text-xs text-white/60 tracking-wider mt-1">
               Council Review & Question Management
             </p>
           </div>
@@ -421,15 +421,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <button
             type="button"
             onClick={onNavigateToCandidate}
-            className="px-3.5 py-1.5 rounded-lg border border-white/20 hover:border-white/50 bg-black text-xs text-white transition-colors flex items-center gap-1.5 font-medium"
+            className="px-3.5 py-1.5 rounded-lg border border-white/20 hover:border-white/50 bg-black font-display text-xs uppercase tracking-wider text-white transition-colors flex items-center gap-1.5 font-semibold"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Candidate Application
+            Candidate View
           </button>
           <button
             type="button"
             onClick={handleLogout}
-            className="px-3.5 py-1.5 rounded-lg border border-white/20 hover:border-white/50 bg-black text-xs text-white/80 hover:text-white transition-colors font-medium"
+            className="px-3.5 py-1.5 rounded-lg border border-white/20 hover:border-white/50 bg-black font-display text-xs uppercase tracking-wider text-white/80 hover:text-white transition-colors font-semibold"
           >
             Lock Portal
           </button>
@@ -441,40 +441,42 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         <button
           type="button"
           onClick={() => setActiveTab('questions')}
-          className={`pb-3 px-4 text-xs uppercase tracking-wider transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 px-4 font-display text-xs uppercase tracking-[0.15em] transition-colors border-b-2 flex items-center gap-2 ${
             activeTab === 'questions'
               ? 'border-white text-white font-bold'
               : 'border-transparent text-white/60 hover:text-white'
           }`}
         >
           <FileText className="w-4 h-4 text-white" />
-          Questions ({questions.length})
+          <span>Questions</span>
+          <span className="font-mono text-[11px] opacity-75">({questions.length})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('submissions')}
-          className={`pb-3 px-4 text-xs uppercase tracking-wider transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 px-4 font-display text-xs uppercase tracking-[0.15em] transition-colors border-b-2 flex items-center gap-2 ${
             activeTab === 'submissions'
               ? 'border-white text-white font-bold'
               : 'border-transparent text-white/60 hover:text-white'
           }`}
         >
           <UserCheck className="w-4 h-4 text-white" />
-          Answersheets ({submissions.length})
+          <span>Answersheets</span>
+          <span className="font-mono text-[11px] opacity-75">({submissions.length})</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('settings')}
-          className={`pb-3 px-4 text-xs uppercase tracking-wider transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 px-4 font-display text-xs uppercase tracking-[0.15em] transition-colors border-b-2 flex items-center gap-2 ${
             activeTab === 'settings'
               ? 'border-white text-white font-bold'
               : 'border-transparent text-white/60 hover:text-white'
           }`}
         >
           <Lock className="w-4 h-4 text-white" />
-          Settings & Background
+          <span>Settings & Background</span>
         </button>
       </div>
 
@@ -483,8 +485,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-medium text-white">Application Questions</h2>
-              <p className="text-xs text-white/70">
+              <h2 className="font-display text-base sm:text-lg font-semibold tracking-wide uppercase text-white">Application Questions</h2>
+              <p className="font-editorial italic text-xs sm:text-sm text-white/75">
                 All questions appear on the candidate application in the order listed below.
               </p>
             </div>
@@ -494,7 +496,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <button
                   type="button"
                   onClick={handleClearAllQuestions}
-                  className="px-3 py-2 rounded-lg border border-white/20 hover:border-white/40 bg-black text-xs text-white transition-colors"
+                  className="px-3 py-2 rounded-lg border border-white/20 hover:border-white/40 bg-black font-mono text-xs text-white transition-colors"
                 >
                   Clear All
                 </button>
@@ -502,7 +504,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <button
                 type="button"
                 onClick={handleOpenNewQuestion}
-                className="px-4 py-2 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs uppercase tracking-wider font-semibold transition-colors flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-white text-black hover:bg-neutral-200 font-display text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-2"
               >
                 <Plus className="w-4 h-4 text-black" />
                 Add Question
@@ -516,8 +518,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <FileText className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-white">No Questions Configured</h3>
-                <p className="text-xs text-white/70 max-w-sm mx-auto mt-1">
+                <h3 className="font-display text-base font-semibold uppercase tracking-wider text-white">No Questions Configured</h3>
+                <p className="font-editorial italic text-xs sm:text-sm text-white/70 max-w-sm mx-auto mt-1">
                   Create questions of any type: Agree/Disagree, Multiple Choice, 1-10 Rating Scale,
                   Written Essay, or Photographic Upload.
                 </p>
@@ -525,7 +527,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <button
                 type="button"
                 onClick={handleOpenNewQuestion}
-                className="px-4 py-2 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs uppercase tracking-wider font-semibold transition-colors inline-flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-white text-black hover:bg-neutral-200 font-display text-xs uppercase tracking-wider font-bold transition-colors inline-flex items-center gap-2"
               >
                 <Plus className="w-4 h-4 text-black" />
                 Create First Question
@@ -540,22 +542,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 >
                   <div className="space-y-1.5 flex-1">
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="text-xs text-white/60 font-bold">
-                        #{idx + 1}
+                      <span className="font-mono text-xs text-white/50 font-bold tracking-wider">
+                        #{String(idx + 1).padStart(2, '0')}
                       </span>
-                      <h4 className="text-sm font-medium text-white">{q.title}</h4>
-                      <span className="text-[10px] uppercase px-2 py-0.5 rounded border border-white/20 bg-white/5 text-white font-medium">
+                      <h4 className="font-body text-sm font-medium text-white">{q.title}</h4>
+                      <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border border-white/20 bg-white/5 text-white font-medium">
                         {q.type.replace('_', ' ')}
                       </span>
                       {q.required && (
-                        <span className="text-[10px] uppercase text-white/70">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-white/70">
                           (Required)
                         </span>
                       )}
                     </div>
 
                     {q.description && (
-                      <p className="text-xs text-white/70 pl-6 leading-relaxed">
+                      <p className="font-editorial italic text-xs text-white/75 pl-6 leading-relaxed">
                         {q.description}
                       </p>
                     )}
@@ -565,9 +567,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         {q.options.map((opt, oIdx) => (
                           <span
                             key={oIdx}
-                            className="px-2 py-0.5 rounded text-[11px] border border-white/20 bg-black text-white"
+                            className="font-mono px-2 py-0.5 rounded text-[11px] border border-white/20 bg-black text-white"
                           >
-                            {opt}
+                            [{String.fromCharCode(65 + oIdx)}] {opt}
                           </span>
                         ))}
                       </div>
@@ -626,8 +628,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-medium text-white">Candidate Answersheets</h2>
-              <p className="text-xs text-white/70">
+              <h2 className="font-display text-base sm:text-lg font-semibold tracking-wide uppercase text-white">Candidate Answersheets</h2>
+              <p className="font-editorial italic text-xs sm:text-sm text-white/75">
                 Incoming candidate dossiers for manual review and determination.
               </p>
             </div>
@@ -640,14 +642,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search name, alias, email..."
-                  className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-xs focus:outline-none focus:border-white"
+                  className="w-full font-body pl-9 pr-3 py-1.5 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-xs focus:outline-none focus:border-white"
                 />
               </div>
 
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="px-3 py-1.5 rounded-lg bg-black border border-white/20 text-xs text-white focus:outline-none focus:border-white"
+                className="font-mono px-3 py-1.5 rounded-lg bg-black border border-white/20 text-xs text-white focus:outline-none focus:border-white uppercase"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
@@ -659,14 +661,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           </div>
 
           {filteredSubmissions.length === 0 ? (
-            <div className="bg-black border border-white/20 rounded-xl p-12 text-center text-white/70 text-xs">
-              No submissions match the current filters.
+            <div className="bg-black border border-white/20 rounded-xl p-12 text-center text-white/70 font-mono text-xs">
+              No candidate dossiers match the current filters.
             </div>
           ) : (
             <div className="border border-white/20 rounded-xl overflow-hidden bg-black">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-white/5 text-white uppercase tracking-wider border-b border-white/20 font-medium">
+                  <thead className="bg-white/5 text-white/90 uppercase tracking-widest border-b border-white/20 font-mono text-[10px] sm:text-[11px]">
                     <tr>
                       <th className="p-3.5">Candidate</th>
                       <th className="p-3.5">Alias</th>
@@ -680,14 +682,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <tbody className="divide-y divide-white/10">
                     {filteredSubmissions.map((sub) => (
                       <tr key={sub.id} className="hover:bg-white/5 transition-colors">
-                        <td className="p-3.5 font-medium text-white">{sub.candidateName}</td>
-                        <td className="p-3.5 text-white/80">{sub.candidateAlias}</td>
-                        <td className="p-3.5 text-white/60">{sub.candidateEmail}</td>
+                        <td className="p-3.5 font-display font-semibold tracking-wide text-white">{sub.candidateName}</td>
+                        <td className="p-3.5 font-mono text-white/80">{sub.candidateAlias}</td>
+                        <td className="p-3.5 font-mono text-white/60">{sub.candidateEmail}</td>
                         <td className="p-3.5">
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] uppercase font-semibold border ${
+                            className={`font-mono px-2 py-0.5 rounded text-[10px] uppercase font-semibold tracking-wider border ${
                               sub.status === 'accepted'
-                                ? 'bg-white text-black border-white'
+                                ? 'bg-white text-black border-white font-bold'
                                 : sub.status === 'rejected'
                                 ? 'bg-black text-white/60 border-white/30 line-through'
                                 : 'bg-black text-white border-white/30'
@@ -696,10 +698,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             {sub.status}
                           </span>
                         </td>
-                        <td className="p-3.5 text-white/80">
+                        <td className="p-3.5 font-mono text-white/80">
                           {sub.photos?.length || 0}
                         </td>
-                        <td className="p-3.5 text-white/60">
+                        <td className="p-3.5 font-mono text-white/60">
                           {new Date(sub.submittedAt).toLocaleDateString()}
                         </td>
                         <td className="p-3.5 text-right">
@@ -709,7 +711,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                               setSelectedSubmission(sub);
                               setAdminNoteInput(sub.adminNotes || '');
                             }}
-                            className="px-3 py-1 rounded border border-white/20 hover:border-white bg-black text-white transition-colors"
+                            className="font-display px-3 py-1 rounded border border-white/20 hover:border-white bg-black text-white text-[11px] uppercase tracking-wider transition-colors font-semibold"
                           >
                             Review Dossier
                           </button>
@@ -728,15 +730,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       {activeTab === 'settings' && (
         <div className="max-w-2xl space-y-6">
           <div>
-            <h2 className="text-lg font-medium text-white">System Settings & Background</h2>
-            <p className="text-xs text-white/70">
+            <h2 className="font-display text-base sm:text-lg font-semibold tracking-wide uppercase text-white">System Settings & Background</h2>
+            <p className="font-editorial italic text-xs sm:text-sm text-white/75">
               Configure portal titles, candidate messages, and upload custom background image.
             </p>
           </div>
 
           <form onSubmit={handleSaveSettings} className="bg-black border border-white/20 rounded-xl p-6 space-y-5">
             <div>
-              <label className="block text-xs font-medium text-white uppercase tracking-wider mb-1.5">
+              <label className="block font-mono text-xs font-semibold text-white/85 uppercase tracking-wider mb-1.5">
                 Application Heading
               </label>
               <input
@@ -744,13 +746,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 value={societyHeading}
                 onChange={(e) => setSocietyHeading(e.target.value)}
                 placeholder="secretsociety_ind"
-                className="w-full px-3.5 py-2 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
+                className="w-full font-body px-3.5 py-2 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white uppercase tracking-wider mb-1.5">
+              <label className="block font-mono text-xs font-semibold text-white/85 uppercase tracking-wider mb-1.5">
                 Subheading / Protocol Title
               </label>
               <input
@@ -758,12 +760,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 value={societySubheading}
                 onChange={(e) => setSocietySubheading(e.target.value)}
                 placeholder="Candidate Application Portal"
-                className="w-full px-3.5 py-2 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
+                className="w-full font-body px-3.5 py-2 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white uppercase tracking-wider mb-1.5">
+              <label className="block font-mono text-xs font-semibold text-white/85 uppercase tracking-wider mb-1.5">
                 Candidate Introductory Notice
               </label>
               <textarea
@@ -771,12 +773,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 value={oathIntro}
                 onChange={(e) => setOathIntro(e.target.value)}
                 placeholder="Instructions displayed at the top of the candidate examination..."
-                className="w-full p-3 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
+                className="w-full font-body p-3 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white uppercase tracking-wider mb-1.5">
+              <label className="block font-mono text-xs font-semibold text-white/85 uppercase tracking-wider mb-1.5">
                 Post-Submission Closing Notice
               </label>
               <textarea
@@ -784,14 +786,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 value={closingMessage}
                 onChange={(e) => setClosingMessage(e.target.value)}
                 placeholder="Notice displayed after successful submission..."
-                className="w-full p-3 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
+                className="w-full font-body p-3 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
               />
             </div>
 
             {/* Society Sigil Image Upload & Config */}
             <div className="p-4 rounded-lg bg-black border border-white/20 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs uppercase tracking-wider text-white font-medium flex items-center gap-2">
+                <label className="font-mono text-xs uppercase tracking-wider text-white font-semibold flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-white" />
                   Society Sigil / Logo Image
                 </label>
@@ -799,7 +801,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <button
                     type="button"
                     onClick={() => setSigilImage('')}
-                    className="text-xs text-white/70 hover:text-white"
+                    className="font-mono text-xs text-white/70 hover:text-white"
                   >
                     Remove Sigil
                   </button>
@@ -819,7 +821,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     type="button"
                     onClick={() => sigilFileInputRef.current?.click()}
                     disabled={isUploadingSigil}
-                    className="px-4 py-2 rounded-lg border border-white/30 hover:border-white bg-black hover:bg-white/5 text-xs text-white font-medium flex items-center justify-center gap-2 transition-colors"
+                    className="px-4 py-2 rounded-lg border border-white/30 hover:border-white bg-black hover:bg-white/5 font-display text-xs uppercase tracking-wider text-white font-semibold flex items-center justify-center gap-2 transition-colors"
                   >
                     <Upload className="w-4 h-4 text-white" />
                     {isUploadingSigil ? 'Loading...' : 'Upload Sigil Image'}
@@ -830,7 +832,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     value={sigilImage}
                     onChange={(e) => setSigilImage(e.target.value)}
                     placeholder="Or enter image URL..."
-                    className="flex-1 px-3 py-2 rounded-lg bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white"
+                    className="flex-1 font-mono px-3 py-2 rounded-lg bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white"
                   />
                 </div>
 
@@ -844,14 +846,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       />
                     </div>
                     <div className="space-y-1">
-                      <span className="text-xs text-white font-medium block">Active Sigil Image</span>
-                      <p className="text-[11px] text-white/60">
+                      <span className="font-mono text-xs text-white font-medium block">Active Sigil Image</span>
+                      <p className="font-editorial italic text-xs text-white/70">
                         Displayed at the top of the candidate application form and council portal.
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 rounded-lg border border-white/10 bg-black text-center text-xs text-white/60">
+                  <div className="p-3 rounded-lg border border-white/10 bg-black text-center font-editorial italic text-xs text-white/60">
                     No sigil image uploaded. The header cleanly displays the society heading and protocol title.
                   </div>
                 )}
@@ -861,7 +863,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             {/* Background Image Upload & Config */}
             <div className="p-4 rounded-lg bg-black border border-white/20 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs uppercase tracking-wider text-white font-medium flex items-center gap-2">
+                <label className="font-mono text-xs uppercase tracking-wider text-white font-semibold flex items-center gap-2">
                   <ImageIcon className="w-4 h-4 text-white" />
                   Website Background Image
                 </label>
@@ -869,7 +871,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <button
                     type="button"
                     onClick={() => setBackgroundImage('')}
-                    className="text-xs text-white/70 hover:text-white"
+                    className="font-mono text-xs text-white/70 hover:text-white"
                   >
                     Reset to Pure Black
                   </button>
@@ -889,7 +891,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     type="button"
                     onClick={() => bgFileInputRef.current?.click()}
                     disabled={isUploadingBg}
-                    className="px-4 py-2 rounded-lg border border-white/30 hover:border-white bg-black hover:bg-white/5 text-xs text-white font-medium flex items-center justify-center gap-2 transition-colors"
+                    className="px-4 py-2 rounded-lg border border-white/30 hover:border-white bg-black hover:bg-white/5 font-display text-xs uppercase tracking-wider text-white font-semibold flex items-center justify-center gap-2 transition-colors"
                   >
                     <Upload className="w-4 h-4 text-white" />
                     {isUploadingBg ? 'Loading...' : 'Upload Background Image'}
@@ -900,7 +902,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     value={backgroundImage}
                     onChange={(e) => setBackgroundImage(e.target.value)}
                     placeholder="Or enter image URL..."
-                    className="flex-1 px-3 py-2 rounded-lg bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white"
+                    className="flex-1 font-mono px-3 py-2 rounded-lg bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white"
                   />
                 </div>
 
@@ -912,13 +914,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       className="w-full h-full object-cover opacity-60"
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <span className="text-xs text-white font-medium bg-black/80 px-2 py-1 rounded border border-white/20">
+                      <span className="font-mono text-xs text-white font-medium bg-black/80 px-2 py-1 rounded border border-white/20">
                         Active Background Preview
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 rounded-lg border border-white/10 bg-black text-center text-xs text-white/60">
+                  <div className="p-3 rounded-lg border border-white/10 bg-black text-center font-editorial italic text-xs text-white/60">
                     Currently set to pure pitch black (no background image).
                   </div>
                 )}
@@ -927,7 +929,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
             <div className="pt-2 flex items-center justify-between">
               {settingsSuccess && (
-                <span className="text-xs text-white flex items-center gap-1.5 font-medium">
+                <span className="font-mono text-xs text-white flex items-center gap-1.5 font-medium">
                   <Check className="w-3.5 h-3.5 text-white" />
                   Settings saved successfully.
                 </span>
@@ -935,7 +937,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <button
                 type="submit"
                 disabled={isSavingSettings}
-                className="ml-auto px-6 py-2.5 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs uppercase tracking-wider font-semibold transition-colors flex items-center gap-2"
+                className="ml-auto px-6 py-2.5 rounded-lg bg-white text-black hover:bg-neutral-200 font-display text-xs uppercase tracking-wider font-bold transition-colors flex items-center gap-2"
               >
                 <Save className="w-3.5 h-3.5 text-black" />
                 {isSavingSettings ? 'Saving...' : 'Save Settings'}
@@ -950,7 +952,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4">
           <div className="w-full max-w-xl bg-black border border-white/30 rounded-xl p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/20 pb-3">
-              <h3 className="text-base font-semibold text-white">
+              <h3 className="font-display text-base font-semibold uppercase tracking-wider text-white">
                 {editingQuestion.id && !editingQuestion.id.startsWith('q_') ? 'Edit Question' : 'Add New Question'}
               </h3>
               <button
@@ -963,7 +965,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
             <form onSubmit={handleSaveQuestion} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-white uppercase tracking-wider mb-1">
+                <label className="block font-mono text-xs font-semibold text-white/85 uppercase tracking-wider mb-1">
                   Question Title <span className="text-white">*</span>
                 </label>
                 <input
@@ -971,13 +973,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   value={editingQuestion.title}
                   onChange={(e) => setEditingQuestion({ ...editingQuestion, title: e.target.value })}
                   placeholder="e.g. Do you solemnly uphold the oath of silence?"
-                  className="w-full px-3.5 py-2 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
+                  className="w-full font-body px-3.5 py-2 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-white uppercase tracking-wider mb-1">
+                <label className="block font-mono text-xs font-semibold text-white/85 uppercase tracking-wider mb-1">
                   Description / Explanation (Optional)
                 </label>
                 <textarea
@@ -985,13 +987,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   value={editingQuestion.description || ''}
                   onChange={(e) => setEditingQuestion({ ...editingQuestion, description: e.target.value })}
                   placeholder="Instructions or context for candidate..."
-                  className="w-full p-2.5 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
+                  className="w-full font-body p-2.5 rounded-lg bg-black border border-white/20 text-white text-sm focus:outline-none focus:border-white"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-white uppercase tracking-wider mb-1">
+                  <label className="block font-mono text-xs font-semibold text-white/85 uppercase tracking-wider mb-1">
                     Question Type
                   </label>
                   <select
@@ -1006,7 +1008,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             : editingQuestion.options
                       })
                     }
-                    className="w-full px-3 py-2 rounded-lg bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white"
+                    className="w-full font-mono px-3 py-2 rounded-lg bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white uppercase"
                   >
                     <option value="agree_disagree">Agree / Disagree</option>
                     <option value="multiple_choice">Multiple Choice</option>
@@ -1017,7 +1019,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-white uppercase tracking-wider mb-1">
+                  <label className="block font-mono text-xs font-semibold text-white/85 uppercase tracking-wider mb-1">
                     Category Tag
                   </label>
                   <input
@@ -1025,7 +1027,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     value={editingQuestion.category || ''}
                     onChange={(e) => setEditingQuestion({ ...editingQuestion, category: e.target.value })}
                     placeholder="e.g. Oath, Logic, General"
-                    className="w-full px-3 py-2 rounded-lg bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white"
+                    className="w-full font-mono px-3 py-2 rounded-lg bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white uppercase"
                   />
                 </div>
               </div>
@@ -1034,7 +1036,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               {editingQuestion.type === 'multiple_choice' && (
                 <div className="p-4 rounded-lg bg-black border border-white/20 space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs uppercase tracking-wider text-white font-medium">
+                    <label className="font-mono text-xs uppercase tracking-wider text-white font-semibold">
                       Answer Choices
                     </label>
                     <button
@@ -1045,7 +1047,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           options: [...(editingQuestion.options || []), `Option ${(editingQuestion.options?.length || 0) + 1}`]
                         })
                       }
-                      className="text-xs text-white hover:text-white/80 flex items-center gap-1 font-medium"
+                      className="font-mono text-xs text-white hover:text-white/80 flex items-center gap-1 font-medium"
                     >
                       <Plus className="w-3.5 h-3.5 text-white" />
                       Add Option
@@ -1055,7 +1057,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <div className="space-y-2">
                     {editingQuestion.options?.map((opt, oIdx) => (
                       <div key={oIdx} className="flex items-center gap-2">
-                        <span className="text-xs text-white/60 w-5">#{oIdx + 1}</span>
+                        <span className="font-mono text-xs text-white/60 w-5">#{oIdx + 1}</span>
                         <input
                           type="text"
                           value={opt}
@@ -1064,7 +1066,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             updated[oIdx] = e.target.value;
                             setEditingQuestion({ ...editingQuestion, options: updated });
                           }}
-                          className="flex-1 px-2.5 py-1.5 rounded bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white"
+                          className="flex-1 font-body px-2.5 py-1.5 rounded bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white"
                         />
                         {editingQuestion.options && editingQuestion.options.length > 2 && (
                           <button
@@ -1095,7 +1097,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   onChange={(e) => setEditingQuestion({ ...editingQuestion, required: e.target.checked })}
                   className="accent-white rounded"
                 />
-                <label htmlFor="requiredCheckbox" className="text-xs text-white">
+                <label htmlFor="requiredCheckbox" className="font-body text-xs text-white">
                   Candidate response is mandatory
                 </label>
               </div>
@@ -1104,13 +1106,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsEditingQuestion(false)}
-                  className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10 text-xs text-white"
+                  className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10 font-mono text-xs text-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-lg bg-white text-black hover:bg-neutral-200 text-xs uppercase tracking-wider font-semibold"
+                  className="px-5 py-2 rounded-lg bg-white text-black hover:bg-neutral-200 font-display text-xs uppercase tracking-wider font-bold"
                 >
                   Save Question
                 </button>
@@ -1126,13 +1128,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <div className="w-full max-w-3xl bg-black border border-white/30 rounded-xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start justify-between border-b border-white/20 pb-4">
               <div>
-                <span className="text-xs uppercase text-white/70 font-medium tracking-wider">
+                <span className="font-mono text-xs uppercase text-white/70 font-medium tracking-wider">
                   Candidate Dossier
                 </span>
-                <h3 className="text-xl font-semibold text-white mt-0.5">
+                <h3 className="font-display text-xl font-bold uppercase tracking-wide text-white mt-0.5">
                   {selectedSubmission.candidateName}
                 </h3>
-                <p className="text-xs text-white/70">
+                <p className="font-mono text-xs text-white/70 mt-0.5">
                   Alias: {selectedSubmission.candidateAlias} • {selectedSubmission.candidateEmail}
                 </p>
               </div>
@@ -1148,20 +1150,20 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             {/* Candidate Metadata Summary */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               <div className="bg-black border border-white/20 p-3 rounded-lg">
-                <span className="text-white/60 block">Council Status</span>
-                <span className="text-white uppercase font-semibold">
+                <span className="font-mono text-[10px] uppercase text-white/60 tracking-wider block">Council Status</span>
+                <span className="font-mono text-white uppercase font-bold tracking-wider">
                   {selectedSubmission.status}
                 </span>
               </div>
               <div className="bg-black border border-white/20 p-3 rounded-lg">
-                <span className="text-white/60 block">Submission Date</span>
-                <span className="text-white">
+                <span className="font-mono text-[10px] uppercase text-white/60 tracking-wider block">Submission Date</span>
+                <span className="font-mono text-white">
                   {new Date(selectedSubmission.submittedAt).toLocaleString()}
                 </span>
               </div>
               <div className="bg-black border border-white/20 p-3 rounded-lg">
-                <span className="text-white/60 block">Reference ID</span>
-                <span className="text-white/80 select-all truncate block">
+                <span className="font-mono text-[10px] uppercase text-white/60 tracking-wider block">Reference ID</span>
+                <span className="font-mono text-white/80 select-all truncate block">
                   {selectedSubmission.id}
                 </span>
               </div>
@@ -1169,35 +1171,35 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
             {/* Status Determination Controls */}
             <div className="p-4 rounded-lg bg-black border border-white/20 space-y-2">
-              <span className="text-xs text-white/80 font-medium block uppercase tracking-wider">
+              <span className="font-mono text-xs text-white/80 font-semibold block uppercase tracking-wider">
                 Council Determination:
               </span>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => handleStatusChange(selectedSubmission.id, 'accepted')}
-                  className="px-4 py-1.5 rounded bg-white text-black hover:bg-neutral-200 text-xs uppercase font-semibold transition-colors"
+                  className="px-4 py-1.5 rounded bg-white text-black hover:bg-neutral-200 font-display text-xs uppercase tracking-wider font-bold transition-colors"
                 >
                   Accept Candidate
                 </button>
                 <button
                   type="button"
                   onClick={() => handleStatusChange(selectedSubmission.id, 'scrutiny')}
-                  className="px-4 py-1.5 rounded border border-white/30 hover:border-white bg-black text-white text-xs uppercase font-medium transition-colors"
+                  className="px-4 py-1.5 rounded border border-white/30 hover:border-white bg-black text-white font-display text-xs uppercase tracking-wider font-semibold transition-colors"
                 >
                   Under Scrutiny
                 </button>
                 <button
                   type="button"
                   onClick={() => handleStatusChange(selectedSubmission.id, 'rejected')}
-                  className="px-4 py-1.5 rounded border border-white/30 hover:border-white bg-black text-white text-xs uppercase font-medium transition-colors"
+                  className="px-4 py-1.5 rounded border border-white/30 hover:border-white bg-black text-white font-display text-xs uppercase tracking-wider font-semibold transition-colors"
                 >
                   Reject
                 </button>
                 <button
                   type="button"
                   onClick={() => handleStatusChange(selectedSubmission.id, 'pending')}
-                  className="px-4 py-1.5 rounded border border-white/20 hover:border-white bg-black text-white/70 text-xs uppercase font-medium transition-colors"
+                  className="px-4 py-1.5 rounded border border-white/20 hover:border-white bg-black text-white/70 font-display text-xs uppercase tracking-wider font-semibold transition-colors"
                 >
                   Set Pending
                 </button>
@@ -1206,7 +1208,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
             {/* Candidate Answers Breakdown */}
             <div className="space-y-3">
-              <h4 className="text-xs uppercase tracking-wider text-white font-medium">
+              <h4 className="font-display text-xs uppercase tracking-wider text-white font-semibold">
                 Candidate Responses ({Object.keys(selectedSubmission.answers || {}).length})
               </h4>
 
@@ -1217,21 +1219,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     className="p-3.5 rounded-lg bg-black border border-white/20 text-xs space-y-1.5"
                   >
                     <div className="flex justify-between items-start">
-                      <span className="font-medium text-white">
+                      <span className="font-body font-medium text-white">
                         {ans.questionTitle || `Question ${idx + 1}`}
                       </span>
-                      <span className="text-[10px] uppercase text-white/60">
+                      <span className="font-mono text-[10px] uppercase text-white/60 tracking-wider">
                         {ans.questionType.replace('_', ' ')}
                       </span>
                     </div>
 
                     <div className="text-white/90 pt-1">
                       {typeof ans.answer === 'boolean' ? (
-                        <span className="font-semibold text-white">
+                        <span className="font-mono font-semibold text-white">
                           {ans.answer ? 'Agreed' : 'Disagreed'}
                         </span>
                       ) : typeof ans.answer === 'number' ? (
-                        <span className="text-white font-semibold">
+                        <span className="font-mono text-white font-semibold">
                           Selected Choice / Rating: {ans.answer}
                         </span>
                       ) : Array.isArray(ans.answer) ? (
@@ -1247,7 +1249,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           ))}
                         </div>
                       ) : (
-                        <div className="p-2.5 rounded bg-white/5 border border-white/10 text-white whitespace-pre-wrap">
+                        <div className="font-body p-2.5 rounded bg-white/5 border border-white/10 text-white whitespace-pre-wrap leading-relaxed">
                           {String(ans.answer || 'No response provided')}
                         </div>
                       )}
@@ -1260,7 +1262,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             {/* Candidate Photos */}
             {selectedSubmission.photos && selectedSubmission.photos.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-xs uppercase tracking-wider text-white font-medium">
+                <h4 className="font-display text-xs uppercase tracking-wider text-white font-semibold">
                   Uploaded Verification Photographs ({selectedSubmission.photos.length})
                 </h4>
                 <div className="flex flex-wrap gap-3">
@@ -1279,7 +1281,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
             {/* Admin Notes */}
             <div className="space-y-2">
-              <label className="text-xs uppercase tracking-wider text-white font-medium block">
+              <label className="font-mono text-xs uppercase tracking-wider text-white font-semibold block">
                 Internal Council Notes
               </label>
               <textarea
@@ -1287,12 +1289,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 value={adminNoteInput}
                 onChange={(e) => setAdminNoteInput(e.target.value)}
                 placeholder="Record candidate observations or evaluation notes..."
-                className="w-full p-3 rounded-lg bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white"
+                className="w-full font-body p-3 rounded-lg bg-black border border-white/20 text-white text-xs focus:outline-none focus:border-white"
               />
               <button
                 type="button"
                 onClick={() => handleStatusChange(selectedSubmission.id, selectedSubmission.status)}
-                className="px-4 py-1.5 rounded bg-white text-black hover:bg-neutral-200 text-xs uppercase font-semibold transition-colors"
+                className="px-4 py-1.5 rounded bg-white text-black hover:bg-neutral-200 font-display text-xs uppercase tracking-wider font-bold transition-colors"
               >
                 Save Council Notes
               </button>
@@ -1302,7 +1304,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <button
                 type="button"
                 onClick={() => handleDeleteSubmission(selectedSubmission.id)}
-                className="px-3 py-1.5 rounded border border-white/30 hover:border-white bg-black text-white text-xs"
+                className="px-3 py-1.5 rounded border border-white/30 hover:border-white bg-black text-white font-mono text-xs"
               >
                 Delete Answersheet
               </button>
@@ -1310,7 +1312,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <button
                 type="button"
                 onClick={() => setSelectedSubmission(null)}
-                className="px-4 py-1.5 rounded border border-white/20 text-white text-xs hover:bg-white/10"
+                className="px-4 py-1.5 rounded border border-white/20 text-white font-mono text-xs hover:bg-white/10"
               >
                 Close
               </button>

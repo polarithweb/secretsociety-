@@ -109,20 +109,20 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     <div className="w-full space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <label className="text-sm font-medium text-white flex items-center gap-2">
+          <label className="font-display tracking-wider text-xs sm:text-sm uppercase font-semibold text-white flex items-center gap-2">
             <Camera className="w-4 h-4 text-white" />
             {label}
-            {required && <span className="text-white/80 text-xs">(Required)</span>}
+            {required && <span className="font-mono text-white/70 text-[11px] normal-case">(Required)</span>}
           </label>
-          {description && <p className="text-xs text-white/70 mt-0.5">{description}</p>}
+          {description && <p className="font-editorial italic text-xs text-white/80 mt-0.5">{description}</p>}
         </div>
-        <span className="text-xs text-white px-2.5 py-0.5 rounded border border-white/20 bg-white/5">
+        <span className="font-mono text-xs text-white px-2.5 py-0.5 rounded border border-white/20 bg-white/5">
           {photos.length} / {maxPhotos}
         </span>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 p-2.5 rounded border border-white/40 bg-black text-white text-xs">
+        <div className="flex items-center gap-2 p-2.5 rounded border border-white/40 bg-black text-white font-mono text-xs">
           <AlertCircle className="w-4 h-4 shrink-0 text-white" />
           <span>{error}</span>
         </div>
@@ -154,7 +154,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                 <Trash2 className="w-4 h-4 text-white" />
               </button>
             </div>
-            <div className="absolute bottom-1 left-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] text-white border border-white/20">
+            <div className="absolute bottom-1 left-1 bg-black/80 px-1.5 py-0.5 rounded font-mono text-[10px] text-white border border-white/20">
               #{idx + 1}
             </div>
           </div>
@@ -179,17 +179,17 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
             {isProcessing ? (
               <div className="flex flex-col items-center gap-1.5">
                 <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span className="text-[11px] text-white">Processing...</span>
+                <span className="font-mono text-[11px] text-white">Processing...</span>
               </div>
             ) : (
               <>
                 <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-1.5 transition-colors border border-white/10">
                   <Upload className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xs font-medium text-white">
+                <span className="font-mono text-xs font-semibold uppercase tracking-wider text-white">
                   Upload Photo
                 </span>
-                <span className="text-[10px] text-white/60 mt-0.5">JPG / PNG</span>
+                <span className="font-mono text-[10px] text-white/60 mt-0.5">JPG / PNG</span>
               </>
             )}
           </button>

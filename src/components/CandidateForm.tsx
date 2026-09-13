@@ -165,15 +165,15 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
             </div>
           )}
 
-          <div className="text-xs uppercase tracking-widest text-white/70 font-medium mb-2">
+          <div className="font-mono text-[11px] uppercase tracking-[0.3em] text-white/70 font-medium mb-2">
             Application Transmitted
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white mb-3">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-wider text-white mb-3">
             {settings.heading || 'secretsociety_ind'}
           </h1>
 
-          <p className="text-white/80 text-sm max-w-md mx-auto mb-8 leading-relaxed">
+          <p className="font-editorial italic text-base sm:text-lg text-white/90 max-w-md mx-auto mb-8 leading-relaxed">
             {settings.closingMessage ||
               'Your responses have been recorded and transmitted directly to the Council. Your dossier is under sealed review.'}
           </p>
@@ -181,28 +181,28 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
           {/* Submission Details Summary */}
           <div className="bg-black border border-white/20 rounded-lg p-5 mb-8 text-left space-y-3 text-xs">
             <div className="flex justify-between border-b border-white/10 pb-2">
-              <span className="text-white/60">Reference ID:</span>
-              <span className="text-white select-all font-medium">{submittedAnswersheet.id}</span>
+              <span className="font-mono text-white/60">Reference ID:</span>
+              <span className="font-mono text-white select-all font-medium">{submittedAnswersheet.id}</span>
             </div>
             <div className="flex justify-between border-b border-white/10 pb-2">
-              <span className="text-white/60">Candidate Alias:</span>
-              <span className="text-white font-medium">{submittedAnswersheet.candidateAlias}</span>
+              <span className="font-mono text-white/60">Candidate Alias:</span>
+              <span className="font-mono text-white font-medium">{submittedAnswersheet.candidateAlias}</span>
             </div>
             <div className="flex justify-between border-b border-white/10 pb-2">
-              <span className="text-white/60">Full Name:</span>
-              <span className="text-white">{submittedAnswersheet.candidateName}</span>
+              <span className="font-mono text-white/60">Full Name:</span>
+              <span className="font-body text-white">{submittedAnswersheet.candidateName}</span>
             </div>
             <div className="flex justify-between border-b border-white/10 pb-2">
-              <span className="text-white/60">Contact Email:</span>
-              <span className="text-white">{submittedAnswersheet.candidateEmail}</span>
+              <span className="font-mono text-white/60">Contact Email:</span>
+              <span className="font-mono text-white">{submittedAnswersheet.candidateEmail}</span>
             </div>
             <div className="flex justify-between border-b border-white/10 pb-2">
-              <span className="text-white/60">Questions Answered:</span>
-              <span className="text-white font-medium">{Object.keys(submittedAnswersheet.answers || {}).length}</span>
+              <span className="font-mono text-white/60">Questions Answered:</span>
+              <span className="font-mono text-white font-medium">{Object.keys(submittedAnswersheet.answers || {}).length}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-white/60">Status:</span>
-              <span className="text-white font-semibold uppercase tracking-wider">
+              <span className="font-mono text-white/60">Status:</span>
+              <span className="font-mono text-white font-semibold uppercase tracking-wider">
                 Under Council Review
               </span>
             </div>
@@ -210,7 +210,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
 
           {submittedAnswersheet.photos.length > 0 && (
             <div className="mb-8 text-left">
-              <div className="text-xs uppercase tracking-wider text-white/80 font-medium mb-3">
+              <div className="font-mono text-[11px] uppercase tracking-wider text-white/80 font-medium mb-3">
                 Uploaded Verification Photographs ({submittedAnswersheet.photos.length})
               </div>
               <div className="flex items-center gap-3">
@@ -230,7 +230,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="px-8 py-2.5 rounded-lg border border-white/30 bg-black hover:bg-white/10 text-white text-xs uppercase tracking-wider transition-all font-medium"
+              className="font-display px-8 py-2.5 rounded-lg border border-white/30 bg-black hover:bg-white/10 text-white text-xs uppercase tracking-widest transition-all font-semibold"
             >
               Submit Another Application
             </button>
@@ -258,24 +258,24 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
         )}
 
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white">
+          <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-[0.16em] uppercase text-white">
             {settings.heading || 'secretsociety_ind'}
           </h1>
-          <p className="text-xs sm:text-sm tracking-wider uppercase text-white/80 font-medium mt-1.5">
+          <p className="font-mono text-xs sm:text-sm tracking-[0.25em] uppercase text-white/70 font-medium mt-2">
             {settings.subheading || 'Candidate Application Portal'}
           </p>
         </div>
       </div>
 
       {settings.oathIntro && (
-        <div className="mb-8 p-4 rounded-lg bg-black border border-white/20 text-white/85 text-xs sm:text-sm leading-relaxed">
-          {settings.oathIntro}
+        <div className="mb-8 p-5 rounded-lg bg-black border border-white/20 text-white/90 font-editorial italic text-base sm:text-lg leading-relaxed shadow-sm">
+          "{settings.oathIntro}"
         </div>
       )}
 
       {/* Validation Error Banner */}
       {validationError && (
-        <div className="mb-6 flex items-center gap-3 p-3.5 rounded-lg bg-black border border-white/50 text-white text-xs sm:text-sm">
+        <div className="mb-6 flex items-center gap-3 p-3.5 rounded-lg bg-black border border-white/50 text-white font-mono text-xs sm:text-sm">
           <AlertCircle className="w-4 h-4 shrink-0 text-white" />
           <span>{validationError}</span>
         </div>
@@ -284,14 +284,14 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section 1: Candidate Profile */}
         <div className="bg-black border border-white/20 rounded-xl p-6 sm:p-7 space-y-5">
-          <div className="flex items-center gap-2 text-sm font-medium text-white uppercase tracking-wider">
+          <div className="flex items-center gap-2 font-display text-xs sm:text-sm font-semibold text-white uppercase tracking-[0.18em]">
             <User className="w-4 h-4 text-white" />
             Candidate Credentials
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-white/80 uppercase tracking-wider mb-1.5">
+              <label className="block font-mono text-[11px] font-medium text-white/80 uppercase tracking-wider mb-1.5">
                 Full Name <span className="text-white">*</span>
               </label>
               <input
@@ -299,13 +299,13 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
                 value={candidateName}
                 onChange={(e) => setCandidateName(e.target.value)}
                 placeholder="e.g. Johnathan Vance"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
+                className="w-full font-body px-3.5 py-2.5 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white/80 uppercase tracking-wider mb-1.5">
+              <label className="block font-mono text-[11px] font-medium text-white/80 uppercase tracking-wider mb-1.5">
                 Candidate Alias / Moniker <span className="text-white">*</span>
               </label>
               <input
@@ -313,13 +313,13 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
                 value={candidateAlias}
                 onChange={(e) => setCandidateAlias(e.target.value)}
                 placeholder="e.g. Initiate-42"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
+                className="w-full font-mono px-3.5 py-2.5 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-white/80 uppercase tracking-wider mb-1.5">
+              <label className="block font-mono text-[11px] font-medium text-white/80 uppercase tracking-wider mb-1.5">
                 Contact Email <span className="text-white">*</span>
               </label>
               <input
@@ -327,7 +327,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
                 value={candidateEmail}
                 onChange={(e) => setCandidateEmail(e.target.value)}
                 placeholder="candidate@domain.com"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
+                className="w-full font-mono px-3.5 py-2.5 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
                 required
               />
             </div>
@@ -337,9 +337,9 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
         {/* Section 2: Questions (Set from Admin Portal) */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm font-medium text-white uppercase tracking-wider">
+            <div className="flex items-center gap-2 font-display text-xs sm:text-sm font-semibold text-white uppercase tracking-[0.18em]">
               <Fingerprint className="w-4 h-4 text-white" />
-              Examination Questions ({questions.length})
+              Examination Questions <span className="font-mono text-xs text-white/60 font-normal">({questions.length})</span>
             </div>
           </div>
 
@@ -348,8 +348,8 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
               <div className="w-10 h-10 mx-auto rounded-full bg-black border border-white/30 flex items-center justify-center text-white">
                 <FileText className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-base font-semibold text-white">No Questions Configured</h3>
-              <p className="text-xs sm:text-sm text-white/70 max-w-md mx-auto leading-relaxed">
+              <h3 className="font-display text-base font-semibold text-white tracking-wider uppercase">No Questions Configured</h3>
+              <p className="font-editorial italic text-sm sm:text-base text-white/70 max-w-md mx-auto leading-relaxed">
                 Questions will be populated by the council. Please check back shortly.
               </p>
             </div>
@@ -363,15 +363,15 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-white/60 font-semibold">
+                      <span className="font-mono text-xs sm:text-sm text-white/50 font-bold tracking-wider">
                         {String(idx + 1).padStart(2, '0')}.
                       </span>
-                      <h3 className="text-base font-medium text-white leading-snug">
+                      <h3 className="font-body text-base font-medium text-white leading-snug">
                         {q.title}
                       </h3>
                     </div>
                     {q.description && (
-                      <p className="text-xs sm:text-sm text-white/70 pl-6 leading-relaxed">
+                      <p className="font-editorial italic text-sm text-white/80 pl-6 leading-relaxed">
                         {q.description}
                       </p>
                     )}
@@ -379,12 +379,12 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
 
                   <div className="flex items-center gap-2 shrink-0">
                     {q.category && (
-                      <span className="text-[10px] uppercase px-2 py-0.5 rounded border border-white/20 bg-white/5 text-white">
+                      <span className="font-mono text-[10px] tracking-wider uppercase px-2 py-0.5 rounded border border-white/20 bg-white/5 text-white">
                         {q.category}
                       </span>
                     )}
                     {q.required && (
-                      <span className="text-[10px] uppercase text-white/80 font-medium">
+                      <span className="font-mono text-[10px] tracking-wider uppercase text-white/80 font-medium">
                         Required
                       </span>
                     )}
@@ -399,7 +399,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
                       <button
                         type="button"
                         onClick={() => handleAnswerChange(q.id, true)}
-                        className={`px-4 py-2.5 rounded-lg text-xs uppercase tracking-wider transition-all border ${
+                        className={`font-mono px-4 py-2.5 rounded-lg text-xs uppercase tracking-widest transition-all border ${
                           answers[q.id] === true
                             ? 'bg-white text-black border-white font-bold'
                             : 'bg-black text-white/80 border-white/20 hover:border-white/50'
@@ -410,7 +410,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
                       <button
                         type="button"
                         onClick={() => handleAnswerChange(q.id, false)}
-                        className={`px-4 py-2.5 rounded-lg text-xs uppercase tracking-wider transition-all border ${
+                        className={`font-mono px-4 py-2.5 rounded-lg text-xs uppercase tracking-widest transition-all border ${
                           answers[q.id] === false
                             ? 'bg-white text-black border-white font-bold'
                             : 'bg-black text-white/80 border-white/20 hover:border-white/50'
@@ -445,7 +445,10 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
                             >
                               {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                             </div>
-                            <span className="text-xs sm:text-sm">{opt}</span>
+                            <span className="font-mono text-xs text-white/40 uppercase mr-1">
+                              [{String.fromCharCode(65 + optIdx)}]
+                            </span>
+                            <span className="font-body text-xs sm:text-sm">{opt}</span>
                           </div>
                         );
                       })}
@@ -461,7 +464,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
                             key={val}
                             type="button"
                             onClick={() => handleAnswerChange(q.id, val)}
-                            className={`w-9 h-9 rounded-lg text-xs transition-all border font-medium ${
+                            className={`font-mono w-9 h-9 rounded-lg text-xs transition-all border font-semibold ${
                               answers[q.id] === val
                                 ? 'bg-white text-black border-white font-bold'
                                 : 'bg-black text-white/80 border-white/20 hover:border-white/50'
@@ -471,7 +474,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
                           </button>
                         ))}
                       </div>
-                      <div className="flex justify-between text-[11px] text-white/60 pt-1">
+                      <div className="flex justify-between font-mono text-[10px] text-white/60 pt-1 tracking-wider uppercase">
                         <span>1 (Lowest)</span>
                         <span>10 (Highest)</span>
                       </div>
@@ -485,7 +488,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
                       value={answers[q.id] || ''}
                       onChange={(e) => handleAnswerChange(q.id, e.target.value)}
                       placeholder="Type your response..."
-                      className="w-full p-3 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
+                      className="w-full font-body p-3 rounded-lg bg-black border border-white/20 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white transition-colors"
                     />
                   )}
 
@@ -520,14 +523,14 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
 
         {/* Submit Bar */}
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-xs text-white/70">
+          <div className="font-mono text-xs text-white/70">
             {questions.length > 0 ? `${questions.length} Questions on this Application` : ''}
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full sm:w-auto px-8 py-3 rounded-lg bg-white text-black hover:bg-neutral-200 disabled:opacity-50 text-xs uppercase tracking-wider font-semibold transition-all flex items-center justify-center gap-2 shadow-sm"
+            className="w-full sm:w-auto px-8 py-3 rounded-lg bg-white text-black hover:bg-neutral-200 disabled:opacity-50 font-display text-xs uppercase tracking-[0.2em] font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
           >
             {isSubmitting ? (
               <>

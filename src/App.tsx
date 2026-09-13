@@ -127,7 +127,7 @@ export default function App() {
   };
 
   return (
-    <div className="relative min-h-screen w-full max-w-full bg-black text-white font-sans overflow-x-hidden selection:bg-white selection:text-black">
+    <div className="relative min-h-screen w-full max-w-full bg-black text-white font-body overflow-x-hidden selection:bg-white selection:text-black">
       {/* Optional background image if uploaded in admin portal */}
       {settings.backgroundImage && (
         <div

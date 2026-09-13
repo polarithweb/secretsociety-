@@ -1,0 +1,6 @@
+{
+  "name": "secretsociety_ind",
+  "description": "Secret society candidate screening, clean assessment, automated scoring, photo verification, and administrative management portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

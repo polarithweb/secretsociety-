@@ -1,0 +1,53 @@
+{
+  "entities": {
+    "settings": {
+      "title": "System Settings",
+      "description": "Global settings including society background, timer, and portal options",
+      "type": "object",
+      "properties": {
+        "backgroundImage": { "type": "string" },
+        "sigilImage": { "type": "string" },
+        "timerMinutes": { "type": "number" },
+        "heading": { "type": "string" },
+        "subheading": { "type": "string" },
+        "adminPin": { "type": "string" },
+        "passingScore": { "type": "number" }
+      }
+    },
+    "questions": {
+      "title": "Application Question",
+      "description": "Customizable questionnaire item",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["agree_disagree", "multiple_choice", "text", "scale", "photo"] },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "correctOptionIndex": { "type": "number" },
+        "points": { "type": "number" },
+        "order": { "type": "number" },
+        "required": { "type": "boolean" }
+      },
+      "required": ["title", "type", "order"]
+    },
+    "submissions": {
+      "title": "Candidate Submission",
+      "description": "Final answersheet submitted by an applicant",
+      "type": "object",
+      "properties": {
+        "candidateName": { "type": "string" },
+        "candidateAlias": { "type": "string" },
+        "candidateEmail": { "type": "string" },
+        "submittedAt": { "type": "string" },
+        "score": { "type": "number" },
+        "maxScore": { "type": "number" },
+        "percentage": { "type": "number" },
+        "timeSpentSeconds": { "type": "number" },
+        "answers": { "type": "object" },
+        "photos": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["pending", "accepted", "scrutiny", "rejected"] }
+      },
+      "required": ["candidateName", "submittedAt", "answers"]
+    }
+  }
+}

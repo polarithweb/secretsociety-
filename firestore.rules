@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Settings can be read by any candidate, written by admin
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Questions can be read by candidates to take the test, written/updated in admin
+    match /questions/{questionId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Submissions can be created by candidates, read and managed in admin
+    match /submissions/{submissionId} {
+      allow create: if true;
+      allow read: if true;
+      allow update, delete: if true;
+    }
+  }
+}

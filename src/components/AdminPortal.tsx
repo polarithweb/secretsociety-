@@ -24,7 +24,8 @@ import {
   CheckCircle2,
   AlertCircle,
   MessageSquare,
-  Clock
+  Clock,
+  BookOpen
 } from 'lucide-react';
 import {
   Question,
@@ -54,6 +55,7 @@ import {
 } from '../lib/firebase';
 import { AdminTaskFormsManager } from './AdminTaskFormsManager';
 import { AdminTaskSubmissionsViewer } from './AdminTaskSubmissionsViewer';
+import { AdminKnowledgeManager } from './AdminKnowledgeManager';
 
 interface AdminPortalProps {
   settings: SocietySettings;
@@ -79,7 +81,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   // Active tab in admin portal
   const [activeTab, setActiveTab] = useState<
-    'questions' | 'submissions' | 'task_forms' | 'task_submissions' | 'member_intel' | 'members' | 'settings'
+    'questions' | 'submissions' | 'task_forms' | 'task_submissions' | 'knowledge' | 'member_intel' | 'members' | 'settings'
   >('questions');
 
   // Member Intelligence Entries State
@@ -666,6 +668,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         >
           <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
           <span>Member Task Filings & Logs</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('knowledge')}
+          className={`pb-3 px-3 sm:px-4 font-display text-[11px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.15em] transition-colors border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap ${
+            activeTab === 'knowledge'
+              ? 'border-white text-white font-bold'
+              : 'border-transparent text-white/60 hover:text-white'
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+          <span>Knowledge Articles (/#/knowledge)</span>
         </button>
 
         <button
@@ -1270,6 +1285,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
       {/* TAB: MEMBER TASK FILINGS & LOGS (/#/info Filings by purpose & continuous updates) */}
       {activeTab === 'task_submissions' && <AdminTaskSubmissionsViewer />}
+
+      {/* TAB: KNOWLEDGE BASE ARTICLES (/#/knowledge Full Text Editor & Media) */}
+      {activeTab === 'knowledge' && <AdminKnowledgeManager />}
 
       {/* TAB 4: MEMBERS & PASSWORDS */}
       {activeTab === 'members' && (

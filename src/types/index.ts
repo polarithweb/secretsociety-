@@ -144,3 +144,26 @@ export interface TaskSubmission {
   infoUpdates: TaskInfoUpdate[];
 }
 
+// ----------------------------------------------------
+// COUNCIL KNOWLEDGE REPOSITORY & ARTICLE PORTAL (/#/knowledge)
+// ----------------------------------------------------
+
+export interface KnowledgeArticle {
+  id: string;
+  title: string;
+  slug?: string;
+  category: string;
+  summary?: string; // Short excerpt/abstract
+  content: string; // Full rich HTML content with b, i, u, headings, quotes, lists, and inline images
+  coverImage?: string;
+  authorAlias?: string;
+  authorName?: string;
+  isPublished: boolean;
+  order?: number;
+  tags?: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge';
+

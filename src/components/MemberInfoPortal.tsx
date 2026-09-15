@@ -21,7 +21,8 @@ import {
   ChevronDown,
   ChevronUp,
   Tag,
-  Check
+  Check,
+  BookOpen
 } from 'lucide-react';
 import {
   SocietySettings,
@@ -473,6 +474,15 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
               </div>
             )}
           </div>
+
+          <a
+            href="#/knowledge"
+            className="px-3 py-1.5 rounded-lg border border-white/20 hover:border-white text-white font-mono text-xs transition-colors flex items-center gap-1.5 bg-white/5 hover:bg-white/10"
+            title="Access Knowledge Portal"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-white" />
+            <span className="hidden sm:inline">Knowledge Base</span>
+          </a>
 
           <button
             id="memberLogoutBtn"

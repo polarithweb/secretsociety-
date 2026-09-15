@@ -43,5 +43,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    // Knowledge Repository articles for /#/knowledge
+    match /knowledge_articles/{articleId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

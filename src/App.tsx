@@ -12,8 +12,9 @@ import {
 import { CandidateForm } from './components/CandidateForm';
 import { AdminPortal } from './components/AdminPortal';
 import { MemberInfoPortal } from './components/MemberInfoPortal';
+import { KnowledgePortal } from './components/KnowledgePortal';
 
-export type AppRoute = 'candidate' | 'admin' | 'info';
+export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge';
 
 export default function App() {
   const [settings, setSettings] = useState<SocietySettings>(DEFAULT_SETTINGS);
@@ -21,7 +22,7 @@ export default function App() {
   const [submissions, setSubmissions] = useState<Answersheet[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Determine active route based strictly on URL /#/admin, /#/info, or pathname
+  // Determine active route based strictly on URL /#/admin, /#/info, /#/knowledge, or pathname
   const detectRoute = (): AppRoute => {
     const path = window.location.pathname.toLowerCase();
     const hash = window.location.hash.toLowerCase();
@@ -46,6 +47,17 @@ export default function App() {
       path.includes('/info')
     ) {
       return 'info';
+    }
+
+    if (
+      hash === '#/knowledge' ||
+      hash === '#knowledge' ||
+      hash.startsWith('#/knowledge') ||
+      path.endsWith('/knowledge') ||
+      path.endsWith('/knowledge/') ||
+      path.includes('/knowledge')
+    ) {
+      return 'knowledge';
     }
 
     return 'candidate';
@@ -120,7 +132,7 @@ export default function App() {
   // Return to main candidate view
   const handleNavigateToCandidate = () => {
     try {
-      let basePath = window.location.pathname.replace(/\/(admin|info)\/?$/i, '');
+      let basePath = window.location.pathname.replace(/\/(admin|info|knowledge)\/?$/i, '');
       if (!basePath) basePath = '/';
       window.history.pushState({}, '', basePath);
       window.location.hash = '';
@@ -180,6 +192,15 @@ export default function App() {
             <MemberInfoPortal
               settings={settings}
               onNavigateToCandidate={handleNavigateToCandidate}
+            />
+          ) : currentRoute === 'knowledge' ? (
+            <KnowledgePortal
+              settings={settings}
+              onNavigateToCandidate={handleNavigateToCandidate}
+              onNavigateToInfo={() => {
+                window.location.hash = '#/info';
+                setCurrentRoute('info');
+              }}
             />
           ) : (
             <CandidateForm

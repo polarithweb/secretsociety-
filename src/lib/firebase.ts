@@ -24,13 +24,15 @@ import {
   MemberInfoEntry,
   TaskForm,
   TaskSubmission,
-  TaskInfoUpdate
+  TaskInfoUpdate,
+  KnowledgeArticle
 } from '../types';
 import {
   DEFAULT_SETTINGS,
   DEFAULT_QUESTIONS,
   DEFAULT_MEMBERS,
-  DEFAULT_TASK_FORMS
+  DEFAULT_TASK_FORMS,
+  DEFAULT_KNOWLEDGE_ARTICLES
 } from './defaults';
 
 // Initialize Firebase App instance
@@ -48,6 +50,7 @@ const MEMBERS_COLLECTION = collection(db, 'members');
 const MEMBER_INFO_ENTRIES_COLLECTION = collection(db, 'member_info_entries');
 const TASK_FORMS_COLLECTION = collection(db, 'task_forms');
 const TASK_SUBMISSIONS_COLLECTION = collection(db, 'task_submissions');
+const KNOWLEDGE_ARTICLES_COLLECTION = collection(db, 'knowledge_articles');
 
 /**
  * Fetch or initialize global society settings
@@ -699,6 +702,152 @@ export async function deleteTaskSubmission(id: string): Promise<void> {
     await deleteDoc(docRef);
   } catch (err) {
     console.error('Error deleting task submission:', err);
+    throw err;
+  }
+}
+
+// ----------------------------------------------------
+// KNOWLEDGE REPOSITORY & ARTICLE ARCHIVES (/#/knowledge)
+// ----------------------------------------------------
+
+/**
+ * Fetch all knowledge articles, optionally filtered by published status
+ */
+export async function getKnowledgeArticles(publishedOnly = false): Promise<KnowledgeArticle[]> {
+  try {
+    const snap = await getDocs(KNOWLEDGE_ARTICLES_COLLECTION);
+    let articles: KnowledgeArticle[] = [];
+    if (!snap.empty) {
+      snap.forEach((d) => {
+        articles.push({ ...(d.data() as KnowledgeArticle), id: d.id });
+      });
+    } else {
+      // First-time seed
+      for (const art of DEFAULT_KNOWLEDGE_ARTICLES) {
+        try {
+          const docRef = doc(KNOWLEDGE_ARTICLES_COLLECTION, art.id);
+          await setDoc(docRef, art);
+          articles.push(art);
+        } catch (e) {
+          console.warn('Seeding knowledge article warning:', e);
+        }
+      }
+    }
+
+    if (publishedOnly) {
+      articles = articles.filter((a) => a.isPublished);
+    }
+
+    // Sort by order asc, then createdAt desc
+    return articles.sort((a, b) => {
+      const orderA = a.order ?? 999;
+      const orderB = b.order ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  } catch (err) {
+    console.warn('Error fetching knowledge articles from Firestore:', err);
+    return publishedOnly ? DEFAULT_KNOWLEDGE_ARTICLES.filter((a) => a.isPublished) : DEFAULT_KNOWLEDGE_ARTICLES;
+  }
+}
+
+/**
+ * Real-time subscription to knowledge articles
+ */
+export function subscribeToKnowledgeArticles(
+  callback: (articles: KnowledgeArticle[]) => void,
+  publishedOnly = false
+): () => void {
+  try {
+    const unsubscribe = onSnapshot(
+      KNOWLEDGE_ARTICLES_COLLECTION,
+      (snap) => {
+        let articles: KnowledgeArticle[] = [];
+        snap.forEach((d) => {
+          articles.push({ ...(d.data() as KnowledgeArticle), id: d.id });
+        });
+
+        if (articles.length === 0) {
+          articles = [...DEFAULT_KNOWLEDGE_ARTICLES];
+        }
+
+        if (publishedOnly) {
+          articles = articles.filter((a) => a.isPublished);
+        }
+
+        articles.sort((a, b) => {
+          const orderA = a.order ?? 999;
+          const orderB = b.order ?? 999;
+          if (orderA !== orderB) return orderA - orderB;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+
+        callback(articles);
+      },
+      (err) => {
+        console.warn('Knowledge articles subscription error:', err);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.warn('Failed to subscribe to knowledge articles:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Create or update a knowledge article
+ */
+export async function saveKnowledgeArticle(
+  article: Partial<KnowledgeArticle>
+): Promise<string> {
+  try {
+    const now = new Date().toISOString();
+    const cleanArticle: Omit<KnowledgeArticle, 'id'> = {
+      title: article.title || 'Untitled Article',
+      slug:
+        article.slug ||
+        (article.title || 'article')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, ''),
+      category: article.category || 'General',
+      summary: article.summary || '',
+      content: article.content || '<p></p>',
+      coverImage: article.coverImage || '',
+      authorAlias: article.authorAlias || 'COUNCIL_ADMIN',
+      authorName: article.authorName || 'Council Scribe',
+      isPublished: article.isPublished !== undefined ? article.isPublished : true,
+      order: article.order ?? 1,
+      tags: article.tags || [],
+      createdAt: article.createdAt || now,
+      updatedAt: now
+    };
+
+    if (article.id && !article.id.startsWith('new_') && !article.id.startsWith('temp_')) {
+      const docRef = doc(KNOWLEDGE_ARTICLES_COLLECTION, article.id);
+      await setDoc(docRef, cleanArticle, { merge: true });
+      return article.id;
+    } else {
+      const docRef = await addDoc(KNOWLEDGE_ARTICLES_COLLECTION, cleanArticle);
+      await updateDoc(docRef, { id: docRef.id });
+      return docRef.id;
+    }
+  } catch (err) {
+    console.error('Error saving knowledge article:', err);
+    throw err;
+  }
+}
+
+/**
+ * Delete a knowledge article
+ */
+export async function deleteKnowledgeArticle(id: string): Promise<void> {
+  try {
+    const docRef = doc(KNOWLEDGE_ARTICLES_COLLECTION, id);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error('Error deleting knowledge article:', err);
     throw err;
   }
 }

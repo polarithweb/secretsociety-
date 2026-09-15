@@ -127,6 +127,27 @@
         "infoUpdates": { "type": "array" }
       },
       "required": ["formId", "memberAlias", "purpose", "answers", "createdAt"]
+    },
+    "knowledge_articles": {
+      "title": "Knowledge Article",
+      "description": "Council knowledge archive articles with formatted HTML content, uploaded images, and category metadata",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "category": { "type": "string" },
+        "summary": { "type": "string" },
+        "content": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "authorAlias": { "type": "string" },
+        "authorName": { "type": "string" },
+        "isPublished": { "type": "boolean" },
+        "order": { "type": "number" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title", "content", "category"]
     }
   }
 }

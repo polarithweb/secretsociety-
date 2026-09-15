@@ -707,32 +707,110 @@ export async function deleteTaskSubmission(id: string): Promise<void> {
 }
 
 // ----------------------------------------------------
+// ----------------------------------------------------
 // KNOWLEDGE REPOSITORY & ARTICLE ARCHIVES (/#/knowledge)
 // ----------------------------------------------------
+
+const KNOWLEDGE_META_DOC_REF = doc(db, 'settings', 'knowledge_meta');
+
+/**
+ * Get locally recorded deleted article IDs
+ */
+function getLocalDeletedArticleIds(): string[] {
+  try {
+    const stored = localStorage.getItem('secretsociety_deleted_articles');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    // Ignore localStorage parse failures
+  }
+  return [];
+}
+
+/**
+ * Record a deleted article ID locally in localStorage
+ */
+function recordLocalDeletedArticleId(id: string): void {
+  try {
+    const existing = getLocalDeletedArticleIds();
+    if (!existing.includes(id)) {
+      existing.push(id);
+      localStorage.setItem('secretsociety_deleted_articles', JSON.stringify(existing));
+    }
+  } catch (e) {
+    // Ignore storage write failures
+  }
+}
 
 /**
  * Fetch all knowledge articles, optionally filtered by published status
  */
 export async function getKnowledgeArticles(publishedOnly = false): Promise<KnowledgeArticle[]> {
   try {
-    const snap = await getDocs(KNOWLEDGE_ARTICLES_COLLECTION);
-    let articles: KnowledgeArticle[] = [];
-    if (!snap.empty) {
-      snap.forEach((d) => {
-        articles.push({ ...(d.data() as KnowledgeArticle), id: d.id });
-      });
-    } else {
-      // First-time seed
-      for (const art of DEFAULT_KNOWLEDGE_ARTICLES) {
-        try {
-          const docRef = doc(KNOWLEDGE_ARTICLES_COLLECTION, art.id);
-          await setDoc(docRef, art);
-          articles.push(art);
-        } catch (e) {
-          console.warn('Seeding knowledge article warning:', e);
+    // Check metadata to determine if knowledge base has already been initialized
+    let isSeeded = false;
+    let remoteDeletedIds: string[] = [];
+
+    try {
+      const metaSnap = await getDoc(KNOWLEDGE_META_DOC_REF);
+      if (metaSnap.exists()) {
+        const data = metaSnap.data();
+        isSeeded = Boolean(data.seeded);
+        if (Array.isArray(data.deletedIds)) {
+          remoteDeletedIds = data.deletedIds;
         }
       }
+    } catch (metaErr) {
+      console.warn('Could not check knowledge_meta in Firestore:', metaErr);
     }
+
+    const localDeleted = getLocalDeletedArticleIds();
+    const allDeletedIds = Array.from(new Set([...remoteDeletedIds, ...localDeleted]));
+
+    const snap = await getDocs(KNOWLEDGE_ARTICLES_COLLECTION);
+    let articles: KnowledgeArticle[] = [];
+
+    if (!snap.empty) {
+      snap.forEach((d) => {
+        if (!allDeletedIds.includes(d.id)) {
+          articles.push({ ...(d.data() as KnowledgeArticle), id: d.id });
+        }
+      });
+
+      // Mark metadata as seeded so future empty states are respected
+      if (!isSeeded) {
+        try {
+          await setDoc(KNOWLEDGE_META_DOC_REF, { seeded: true }, { merge: true });
+        } catch (e) {
+          // ignore
+        }
+      }
+    } else if (!isSeeded) {
+      // First-time seed ONLY if never initialized before
+      for (const art of DEFAULT_KNOWLEDGE_ARTICLES) {
+        if (!allDeletedIds.includes(art.id)) {
+          try {
+            const docRef = doc(KNOWLEDGE_ARTICLES_COLLECTION, art.id);
+            await setDoc(docRef, art);
+            articles.push(art);
+          } catch (e) {
+            console.warn('Seeding knowledge article warning:', e);
+          }
+        }
+      }
+      try {
+        await setDoc(
+          KNOWLEDGE_META_DOC_REF,
+          { seeded: true, deletedIds: allDeletedIds },
+          { merge: true }
+        );
+      } catch (e) {
+        // ignore
+      }
+    }
+    // Note: If snap is empty AND isSeeded is true, articles remains empty [] as intended when an admin purges all articles.
 
     if (publishedOnly) {
       articles = articles.filter((a) => a.isPublished);
@@ -747,7 +825,10 @@ export async function getKnowledgeArticles(publishedOnly = false): Promise<Knowl
     });
   } catch (err) {
     console.warn('Error fetching knowledge articles from Firestore:', err);
-    return publishedOnly ? DEFAULT_KNOWLEDGE_ARTICLES.filter((a) => a.isPublished) : DEFAULT_KNOWLEDGE_ARTICLES;
+    const localDeleted = getLocalDeletedArticleIds();
+    let fallback = DEFAULT_KNOWLEDGE_ARTICLES.filter((a) => !localDeleted.includes(a.id));
+    if (publishedOnly) fallback = fallback.filter((a) => a.isPublished);
+    return fallback;
   }
 }
 
@@ -762,14 +843,14 @@ export function subscribeToKnowledgeArticles(
     const unsubscribe = onSnapshot(
       KNOWLEDGE_ARTICLES_COLLECTION,
       (snap) => {
+        const localDeleted = getLocalDeletedArticleIds();
         let articles: KnowledgeArticle[] = [];
-        snap.forEach((d) => {
-          articles.push({ ...(d.data() as KnowledgeArticle), id: d.id });
-        });
 
-        if (articles.length === 0) {
-          articles = [...DEFAULT_KNOWLEDGE_ARTICLES];
-        }
+        snap.forEach((d) => {
+          if (!localDeleted.includes(d.id)) {
+            articles.push({ ...(d.data() as KnowledgeArticle), id: d.id });
+          }
+        });
 
         if (publishedOnly) {
           articles = articles.filter((a) => a.isPublished);
@@ -840,14 +921,64 @@ export async function saveKnowledgeArticle(
 }
 
 /**
- * Delete a knowledge article
+ * Permanently delete a knowledge article from Firestore & archives
  */
 export async function deleteKnowledgeArticle(id: string): Promise<void> {
+  if (!id) return;
+
   try {
+    // 1. Immediately record in local storage so it is excluded from all instant reactive listeners
+    recordLocalDeletedArticleId(id);
+
+    // 2. Delete document from Firestore collection
     const docRef = doc(KNOWLEDGE_ARTICLES_COLLECTION, id);
     await deleteDoc(docRef);
+
+    // 3. Mark in remote metadata as deleted so default seeding or backups never resurrect it
+    try {
+      await setDoc(
+        KNOWLEDGE_META_DOC_REF,
+        {
+          seeded: true,
+          deletedIds: arrayUnion(id),
+          lastDeletedAt: new Date().toISOString()
+        },
+        { merge: true }
+      );
+    } catch (metaErr) {
+      console.warn('Could not record deleted article ID in knowledge_meta:', metaErr);
+    }
   } catch (err) {
-    console.error('Error deleting knowledge article:', err);
+    console.error('Error permanently deleting knowledge article:', err);
+    throw err;
+  }
+}
+
+/**
+ * Clear all knowledge articles from Firestore (admin purge)
+ */
+export async function clearAllKnowledgeArticles(): Promise<void> {
+  try {
+    const snap = await getDocs(KNOWLEDGE_ARTICLES_COLLECTION);
+    const deletePromises = snap.docs.map((d) => deleteDoc(d.ref));
+    await Promise.all(deletePromises);
+
+    // Mark all defaults as purged
+    for (const art of DEFAULT_KNOWLEDGE_ARTICLES) {
+      recordLocalDeletedArticleId(art.id);
+    }
+
+    await setDoc(
+      KNOWLEDGE_META_DOC_REF,
+      {
+        seeded: true,
+        deletedIds: DEFAULT_KNOWLEDGE_ARTICLES.map((a) => a.id),
+        lastPurgedAt: new Date().toISOString()
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.error('Error clearing all knowledge articles:', err);
     throw err;
   }
 }

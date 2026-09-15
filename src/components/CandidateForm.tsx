@@ -37,6 +37,11 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
   // Track start time for recording duration
   const startTimeRef = useRef<number>(Date.now());
 
+  // Filter questions targeted for candidates (not exclusive to members)
+  const candidateQuestions = questions.filter(
+    (q) => !q.target || q.target === 'candidate' || q.target === 'both'
+  );
+
   // Handler for candidate answering questions
   const handleAnswerChange = (questionId: string, value: any) => {
     setAnswers((prev) => ({
@@ -59,7 +64,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
     }
 
     // Check mandatory questions
-    for (const q of questions) {
+    for (const q of candidateQuestions) {
       if (q.required) {
         if (q.type === 'agree_disagree') {
           if (answers[q.id] === undefined || answers[q.id] === null) {
@@ -104,7 +109,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
 
     try {
       const evaluatedAnswers: Record<string, CandidateAnswer> = {};
-      questions.forEach((q) => {
+      candidateQuestions.forEach((q) => {
         const userAnswer = answers[q.id];
         evaluatedAnswers[q.id] = {
           questionId: q.id,
@@ -343,7 +348,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
             </div>
           </div>
 
-          {questions.length === 0 ? (
+          {candidateQuestions.length === 0 ? (
             <div className="bg-black border border-white/20 rounded-xl p-8 text-center space-y-3">
               <div className="w-10 h-10 mx-auto rounded-full bg-black border border-white/30 flex items-center justify-center text-white">
                 <FileText className="w-5 h-5 text-white" />
@@ -354,7 +359,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
               </p>
             </div>
           ) : (
-            questions.map((q, idx) => (
+            candidateQuestions.map((q, idx) => (
               <div
                 key={q.id || idx}
                 className="bg-black border border-white/20 rounded-xl p-6 space-y-4 hover:border-white/40 transition-colors"
@@ -524,7 +529,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
         {/* Submit Bar */}
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="font-mono text-xs text-white/70">
-            {questions.length > 0 ? `${questions.length} Questions on this Application` : ''}
+            {candidateQuestions.length > 0 ? `${candidateQuestions.length} Questions on this Application` : ''}
           </div>
 
           <button

@@ -5,6 +5,8 @@ export type QuestionType =
   | 'scale'
   | 'photo';
 
+export type QuestionTarget = 'candidate' | 'member' | 'both';
+
 export interface Question {
   id: string;
   title: string;
@@ -16,9 +18,34 @@ export interface Question {
   order: number;
   required: boolean;
   category?: string;
+  target?: QuestionTarget; // 'candidate' | 'member' | 'both'
+  allowMemberAddInfo?: boolean; // Member can login and add new information/text anytime
   minScale?: number;
   maxScale?: number;
   scaleLabels?: { min: string; max: string };
+}
+
+export interface MemberInfoEntry {
+  id: string;
+  questionId: string;
+  questionTitle: string;
+  memberAlias: string;
+  memberName?: string;
+  content: string;
+  submittedAt: string;
+  photos?: string[];
+}
+
+export interface MemberAccount {
+  id: string;
+  alias: string;
+  password: string;
+  name?: string;
+  role?: string;
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt?: string;
+  notes?: string;
 }
 
 export interface SocietySettings {
@@ -31,6 +58,9 @@ export interface SocietySettings {
   adminPin: string;
   oathIntro: string;
   closingMessage: string;
+  memberPortalHeading?: string;
+  memberPortalNotice?: string;
+  memberClosingMessage?: string;
 }
 
 export type SubmissionStatus = 'pending' | 'accepted' | 'scrutiny' | 'rejected';
@@ -60,4 +90,5 @@ export interface Answersheet {
   photos: string[]; // Base64 data URLs or uploaded URLs
   status: SubmissionStatus;
   adminNotes?: string;
+  isMemberSubmission?: boolean;
 }

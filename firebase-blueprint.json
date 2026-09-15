@@ -22,6 +22,8 @@
         "title": { "type": "string" },
         "description": { "type": "string" },
         "type": { "type": "string", "enum": ["agree_disagree", "multiple_choice", "text", "scale", "photo"] },
+        "target": { "type": "string", "enum": ["candidate", "member", "both"] },
+        "allowMemberAddInfo": { "type": "boolean" },
         "options": { "type": "array", "items": { "type": "string" } },
         "correctOptionIndex": { "type": "number" },
         "points": { "type": "number" },
@@ -29,6 +31,21 @@
         "required": { "type": "boolean" }
       },
       "required": ["title", "type", "order"]
+    },
+    "members": {
+      "title": "Member Account",
+      "description": "Authorized member credentials with alias and custom password",
+      "type": "object",
+      "properties": {
+        "alias": { "type": "string" },
+        "password": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["alias", "password", "isActive"]
     },
     "submissions": {
       "title": "Candidate Submission",
@@ -48,6 +65,21 @@
         "status": { "type": "string", "enum": ["pending", "accepted", "scrutiny", "rejected"] }
       },
       "required": ["candidateName", "submittedAt", "answers"]
+    },
+    "member_info_entries": {
+      "title": "Member Info Entry",
+      "description": "Information and text intelligence submitted by members for a specific question anytime",
+      "type": "object",
+      "properties": {
+        "questionId": { "type": "string" },
+        "questionTitle": { "type": "string" },
+        "memberAlias": { "type": "string" },
+        "memberName": { "type": "string" },
+        "content": { "type": "string" },
+        "submittedAt": { "type": "string" },
+        "photos": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["questionId", "memberAlias", "content", "submittedAt"]
     }
   }
 }

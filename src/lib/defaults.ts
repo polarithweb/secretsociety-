@@ -1,4 +1,4 @@
-import { Question, SocietySettings } from '../types';
+import { Question, SocietySettings, MemberAccount } from '../types';
 
 export const DEFAULT_BACKGROUND_PRESETS = [
   {
@@ -33,8 +33,23 @@ export const DEFAULT_SETTINGS: SocietySettings = {
   passingScore: 70,
   adminPin: 'PolarithWeb8825',
   oathIntro: 'Please provide accurate and candid responses. All submitted information is directly reviewed by the council.',
-  closingMessage: 'Your application has been received and entered into the council records. The council will review your responses.'
+  closingMessage: 'Your application has been received and entered into the council records. The council will review your responses.',
+  memberPortalHeading: 'secretsociety_ind',
+  memberPortalNotice: 'Confidential Member Inquest. Authorized credentials required. Respond to the active society directives and verification questions below.',
+  memberClosingMessage: 'Your member submission has been cryptographically recorded in the inner society archives.'
 };
+
+export const DEFAULT_MEMBERS: MemberAccount[] = [
+  {
+    id: 'mem_archon_01',
+    alias: 'ARCHON_01',
+    password: 'arc_password_2026',
+    name: 'Archon Observer',
+    role: 'Council Member',
+    isActive: true,
+    createdAt: new Date().toISOString()
+  }
+];
 
 // No hardcoded questions - all questions are configured from the Admin Portal
 export const DEFAULT_QUESTIONS: Question[] = [];

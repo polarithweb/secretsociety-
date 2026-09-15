@@ -11,6 +11,9 @@ import {
 } from './lib/firebase';
 import { CandidateForm } from './components/CandidateForm';
 import { AdminPortal } from './components/AdminPortal';
+import { MemberInfoPortal } from './components/MemberInfoPortal';
+
+export type AppRoute = 'candidate' | 'admin' | 'info';
 
 export default function App() {
   const [settings, setSettings] = useState<SocietySettings>(DEFAULT_SETTINGS);
@@ -18,26 +21,42 @@ export default function App() {
   const [submissions, setSubmissions] = useState<Answersheet[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Determine if route ends with /admin or #admin
-  const checkIsAdminRoute = () => {
+  // Determine active route based strictly on URL /#/admin, /#/info, or pathname
+  const detectRoute = (): AppRoute => {
     const path = window.location.pathname.toLowerCase();
     const hash = window.location.hash.toLowerCase();
-    return (
+
+    if (
+      hash === '#/admin' ||
+      hash === '#admin' ||
+      hash.startsWith('#/admin') ||
       path.endsWith('/admin') ||
       path.endsWith('/admin/') ||
-      path.includes('/admin') ||
-      hash === '#admin' ||
-      hash === '#/admin' ||
-      hash.includes('admin')
-    );
+      path.includes('/admin')
+    ) {
+      return 'admin';
+    }
+
+    if (
+      hash === '#/info' ||
+      hash === '#info' ||
+      hash.startsWith('#/info') ||
+      path.endsWith('/info') ||
+      path.endsWith('/info/') ||
+      path.includes('/info')
+    ) {
+      return 'info';
+    }
+
+    return 'candidate';
   };
 
-  const [isAdminView, setIsAdminView] = useState<boolean>(checkIsAdminRoute);
+  const [currentRoute, setCurrentRoute] = useState<AppRoute>(detectRoute);
 
-  // Listen to browser navigation changes (popstate and hashchange)
+  // Listen to browser navigation events (hashchange and popstate)
   useEffect(() => {
     const handleLocationChange = () => {
-      setIsAdminView(checkIsAdminRoute());
+      setCurrentRoute(detectRoute());
     };
 
     window.addEventListener('popstate', handleLocationChange);
@@ -98,16 +117,17 @@ export default function App() {
     };
   }, []);
 
-  // Navigation handlers
+  // Return to main candidate view
   const handleNavigateToCandidate = () => {
     try {
-      let basePath = window.location.pathname.replace(/\/admin\/?$/i, '');
+      let basePath = window.location.pathname.replace(/\/(admin|info)\/?$/i, '');
       if (!basePath) basePath = '/';
       window.history.pushState({}, '', basePath);
+      window.location.hash = '';
     } catch (e) {
       window.location.hash = '';
     }
-    setIsAdminView(false);
+    setCurrentRoute('candidate');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -128,7 +148,7 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen w-full max-w-full bg-black text-white font-body overflow-x-hidden selection:bg-white selection:text-black">
-      {/* Optional background image if uploaded in admin portal */}
+      {/* Optional background image if configured in admin portal */}
       {settings.backgroundImage && (
         <div
           className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-25 pointer-events-none"
@@ -148,13 +168,19 @@ export default function App() {
                 Loading...
               </div>
             </div>
-          ) : isAdminView ? (
+          ) : currentRoute === 'admin' ? (
             <AdminPortal
               settings={settings}
               questions={questions}
               submissions={submissions}
               onNavigateToCandidate={handleNavigateToCandidate}
               onRefreshData={handleRefreshData}
+            />
+          ) : currentRoute === 'info' ? (
+            <MemberInfoPortal
+              settings={settings}
+              questions={questions}
+              onNavigateToCandidate={handleNavigateToCandidate}
             />
           ) : (
             <CandidateForm

@@ -13,11 +13,23 @@ service cloud.firestore {
       allow write: if true;
     }
 
-    // Submissions can be created by candidates, read and managed in admin
+    // Submissions can be created by candidates/members, read and managed in admin
     match /submissions/{submissionId} {
       allow create: if true;
       allow read: if true;
       allow update, delete: if true;
+    }
+
+    // Member accounts can be managed by admin, read for authentication
+    match /members/{memberId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Member information entries added to questions anytime
+    match /member_info_entries/{entryId} {
+      allow read: if true;
+      allow write: if true;
     }
   }
 }

@@ -14,8 +14,8 @@ import {
   orderBy
 } from 'firebase/firestore';
 import firebaseConfigData from '../../firebase-applet-config.json';
-import { Question, SocietySettings, Answersheet, SubmissionStatus } from '../types';
-import { DEFAULT_SETTINGS, DEFAULT_QUESTIONS } from './defaults';
+import { Question, SocietySettings, Answersheet, SubmissionStatus, MemberAccount, MemberInfoEntry } from '../types';
+import { DEFAULT_SETTINGS, DEFAULT_QUESTIONS, DEFAULT_MEMBERS } from './defaults';
 
 // Initialize Firebase App instance
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfigData);
@@ -28,6 +28,8 @@ export const db = firebaseConfigData.firestoreDatabaseId
 const SETTINGS_DOC_REF = doc(db, 'settings', 'global');
 const QUESTIONS_COLLECTION = collection(db, 'questions');
 const SUBMISSIONS_COLLECTION = collection(db, 'submissions');
+const MEMBERS_COLLECTION = collection(db, 'members');
+const MEMBER_INFO_ENTRIES_COLLECTION = collection(db, 'member_info_entries');
 
 /**
  * Fetch or initialize global society settings
@@ -272,5 +274,191 @@ export function subscribeToSubmissions(callback: (submissions: Answersheet[]) =>
     console.warn('Could not setup submissions snapshot:', e);
     callback([]);
     return () => {};
+  }
+}
+
+/**
+ * Fetch all registered member accounts
+ */
+export async function getMemberAccounts(): Promise<MemberAccount[]> {
+  try {
+    const snap = await getDocs(MEMBERS_COLLECTION);
+    const members: MemberAccount[] = [];
+    if (!snap.empty) {
+      snap.forEach((d) => {
+        members.push({ ...(d.data() as MemberAccount), id: d.id });
+      });
+      return members;
+    } else {
+      // First-time seed default member
+      for (const m of DEFAULT_MEMBERS) {
+        const docRef = doc(MEMBERS_COLLECTION, m.id);
+        await setDoc(docRef, m);
+      }
+      return DEFAULT_MEMBERS;
+    }
+  } catch (err) {
+    console.warn('Error reading members from Firestore:', err);
+    return DEFAULT_MEMBERS;
+  }
+}
+
+/**
+ * Save or update a member account
+ */
+export async function saveMemberAccount(member: MemberAccount): Promise<string> {
+  try {
+    if (member.id && !member.id.startsWith('new_')) {
+      const mRef = doc(MEMBERS_COLLECTION, member.id);
+      await setDoc(mRef, member, { merge: true });
+      return member.id;
+    } else {
+      const docRef = await addDoc(MEMBERS_COLLECTION, {
+        ...member,
+        id: ''
+      });
+      await updateDoc(docRef, { id: docRef.id });
+      return docRef.id;
+    }
+  } catch (err) {
+    console.error('Failed to save member account:', err);
+    throw err;
+  }
+}
+
+/**
+ * Delete a member account
+ */
+export async function deleteMemberAccountById(id: string): Promise<void> {
+  try {
+    const mRef = doc(MEMBERS_COLLECTION, id);
+    await deleteDoc(mRef);
+  } catch (err) {
+    console.error('Failed to delete member account:', err);
+    throw err;
+  }
+}
+
+/**
+ * Subscribe to real-time member account updates
+ */
+export function subscribeToMembers(callback: (members: MemberAccount[]) => void): () => void {
+  try {
+    return onSnapshot(MEMBERS_COLLECTION, (snapshot) => {
+      const list: MemberAccount[] = [];
+      snapshot.forEach((d) => {
+        list.push({ ...(d.data() as MemberAccount), id: d.id });
+      });
+      callback(list);
+    }, (err) => {
+      console.warn('Members real-time listener error:', err);
+      callback([]);
+    });
+  } catch (e) {
+    console.warn('Could not setup members snapshot:', e);
+    callback([]);
+    return () => {};
+  }
+}
+
+/**
+ * Verify member credentials against registered member accounts
+ */
+export async function authenticateMember(alias: string, password: string): Promise<MemberAccount | null> {
+  try {
+    const members = await getMemberAccounts();
+    const cleanAlias = alias.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    const matched = members.find(
+      (m) => m.alias.trim().toLowerCase() === cleanAlias && m.password === cleanPass && m.isActive
+    );
+
+    if (matched) {
+      // Update last login timestamp asynchronously
+      try {
+        const mRef = doc(MEMBERS_COLLECTION, matched.id);
+        await updateDoc(mRef, { lastLoginAt: new Date().toISOString() });
+      } catch (ignore) {}
+      return matched;
+    }
+    return null;
+  } catch (err) {
+    console.error('Member authentication error:', err);
+    return null;
+  }
+}
+
+/**
+ * Add a new information/intelligence entry to a question by an authenticated member anytime
+ */
+export async function addMemberInfoEntry(entry: Omit<MemberInfoEntry, 'id'>): Promise<string> {
+  try {
+    const docRef = await addDoc(MEMBER_INFO_ENTRIES_COLLECTION, {
+      ...entry,
+      id: ''
+    });
+    await updateDoc(docRef, { id: docRef.id });
+    return docRef.id;
+  } catch (err) {
+    console.error('Failed to record member info entry:', err);
+    throw err;
+  }
+}
+
+/**
+ * Fetch member information entries
+ */
+export async function getMemberInfoEntries(questionId?: string): Promise<MemberInfoEntry[]> {
+  try {
+    const q = query(MEMBER_INFO_ENTRIES_COLLECTION, orderBy('submittedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    const list: MemberInfoEntry[] = [];
+    snapshot.forEach((d) => {
+      const data = d.data() as MemberInfoEntry;
+      if (!questionId || data.questionId === questionId) {
+        list.push({ ...data, id: d.id });
+      }
+    });
+    return list;
+  } catch (err) {
+    console.warn('Error reading member info entries:', err);
+    return [];
+  }
+}
+
+/**
+ * Subscribe to real-time updates of member information entries
+ */
+export function subscribeToMemberInfoEntries(callback: (entries: MemberInfoEntry[]) => void): () => void {
+  try {
+    const q = query(MEMBER_INFO_ENTRIES_COLLECTION, orderBy('submittedAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      const list: MemberInfoEntry[] = [];
+      snapshot.forEach((d) => {
+        list.push({ ...(d.data() as MemberInfoEntry), id: d.id });
+      });
+      callback(list);
+    }, (err) => {
+      console.warn('Member info entries listener warning:', err);
+      callback([]);
+    });
+  } catch (e) {
+    console.warn('Could not setup member info listener:', e);
+    callback([]);
+    return () => {};
+  }
+}
+
+/**
+ * Delete a member information entry
+ */
+export async function deleteMemberInfoEntry(id: string): Promise<void> {
+  try {
+    const docRef = doc(MEMBER_INFO_ENTRIES_COLLECTION, id);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error('Failed to delete member info entry:', err);
+    throw err;
   }
 }

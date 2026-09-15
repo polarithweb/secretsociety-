@@ -11,11 +11,27 @@ import {
   updateDoc,
   onSnapshot,
   query,
-  orderBy
+  orderBy,
+  arrayUnion
 } from 'firebase/firestore';
 import firebaseConfigData from '../../firebase-applet-config.json';
-import { Question, SocietySettings, Answersheet, SubmissionStatus, MemberAccount, MemberInfoEntry } from '../types';
-import { DEFAULT_SETTINGS, DEFAULT_QUESTIONS, DEFAULT_MEMBERS } from './defaults';
+import {
+  Question,
+  SocietySettings,
+  Answersheet,
+  SubmissionStatus,
+  MemberAccount,
+  MemberInfoEntry,
+  TaskForm,
+  TaskSubmission,
+  TaskInfoUpdate
+} from '../types';
+import {
+  DEFAULT_SETTINGS,
+  DEFAULT_QUESTIONS,
+  DEFAULT_MEMBERS,
+  DEFAULT_TASK_FORMS
+} from './defaults';
 
 // Initialize Firebase App instance
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfigData);
@@ -30,6 +46,8 @@ const QUESTIONS_COLLECTION = collection(db, 'questions');
 const SUBMISSIONS_COLLECTION = collection(db, 'submissions');
 const MEMBERS_COLLECTION = collection(db, 'members');
 const MEMBER_INFO_ENTRIES_COLLECTION = collection(db, 'member_info_entries');
+const TASK_FORMS_COLLECTION = collection(db, 'task_forms');
+const TASK_SUBMISSIONS_COLLECTION = collection(db, 'task_submissions');
 
 /**
  * Fetch or initialize global society settings
@@ -462,3 +480,226 @@ export async function deleteMemberInfoEntry(id: string): Promise<void> {
     throw err;
   }
 }
+
+// ====================================================
+// MEMBER TASK FORMS & SUBMISSIONS (INFO PORTAL TASK SYSTEM)
+// ====================================================
+
+/**
+ * Fetch all task forms configured for the member info portal
+ */
+export async function getTaskForms(): Promise<TaskForm[]> {
+  try {
+    const snap = await getDocs(TASK_FORMS_COLLECTION);
+    const forms: TaskForm[] = [];
+    if (!snap.empty) {
+      snap.forEach((d) => {
+        forms.push({ ...(d.data() as TaskForm), id: d.id });
+      });
+      return forms.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    } else {
+      // Seed default task forms
+      for (const tf of DEFAULT_TASK_FORMS) {
+        const formRef = doc(TASK_FORMS_COLLECTION, tf.id);
+        await setDoc(formRef, tf);
+      }
+      return DEFAULT_TASK_FORMS;
+    }
+  } catch (err) {
+    console.warn('Error reading task forms:', err);
+    return DEFAULT_TASK_FORMS;
+  }
+}
+
+/**
+ * Subscribe to real-time task forms updates
+ */
+export function subscribeToTaskForms(callback: (forms: TaskForm[]) => void): () => void {
+  try {
+    return onSnapshot(
+      TASK_FORMS_COLLECTION,
+      (snapshot) => {
+        const forms: TaskForm[] = [];
+        snapshot.forEach((d) => {
+          forms.push({ ...(d.data() as TaskForm), id: d.id });
+        });
+        forms.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        callback(forms);
+      },
+      (err) => {
+        console.warn('Task forms listener warning:', err);
+        callback([]);
+      }
+    );
+  } catch (e) {
+    console.warn('Could not setup task forms listener:', e);
+    callback([]);
+    return () => {};
+  }
+}
+
+/**
+ * Save or update a task form
+ */
+export async function saveTaskForm(form: TaskForm): Promise<string> {
+  try {
+    const dataToSave = {
+      title: form.title || 'Untitled Task Form',
+      description: form.description || '',
+      category: form.category || 'Directives',
+      isActive: form.isActive !== undefined ? form.isActive : true,
+      createdAt: form.createdAt || new Date().toISOString(),
+      questions: form.questions || []
+    };
+
+    if (form.id && !form.id.startsWith('new_') && !form.id.startsWith('temp_')) {
+      const formRef = doc(TASK_FORMS_COLLECTION, form.id);
+      await setDoc(formRef, { ...dataToSave, id: form.id }, { merge: true });
+      return form.id;
+    } else {
+      const docRef = await addDoc(TASK_FORMS_COLLECTION, dataToSave);
+      await updateDoc(docRef, { id: docRef.id });
+      return docRef.id;
+    }
+  } catch (err) {
+    console.error('Error saving task form:', err);
+    throw err;
+  }
+}
+
+/**
+ * Delete a task form
+ */
+export async function deleteTaskForm(id: string): Promise<void> {
+  try {
+    const docRef = doc(TASK_FORMS_COLLECTION, id);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error('Error deleting task form:', err);
+    throw err;
+  }
+}
+
+/**
+ * Fetch task submissions (optionally filtered by member alias)
+ */
+export async function getTaskSubmissions(memberAlias?: string): Promise<TaskSubmission[]> {
+  try {
+    const snap = await getDocs(TASK_SUBMISSIONS_COLLECTION);
+    const submissions: TaskSubmission[] = [];
+    snap.forEach((d) => {
+      const data = d.data() as TaskSubmission;
+      if (!memberAlias || data.memberAlias?.toLowerCase() === memberAlias.toLowerCase()) {
+        submissions.push({ ...data, id: d.id });
+      }
+    });
+    return submissions.sort(
+      (a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+    );
+  } catch (err) {
+    console.warn('Error reading task submissions:', err);
+    return [];
+  }
+}
+
+/**
+ * Subscribe to real-time task submissions
+ */
+export function subscribeToTaskSubmissions(
+  callback: (submissions: TaskSubmission[]) => void,
+  memberAlias?: string
+): () => void {
+  try {
+    return onSnapshot(
+      TASK_SUBMISSIONS_COLLECTION,
+      (snapshot) => {
+        const list: TaskSubmission[] = [];
+        snapshot.forEach((d) => {
+          const data = d.data() as TaskSubmission;
+          if (!memberAlias || data.memberAlias?.toLowerCase() === memberAlias.toLowerCase()) {
+            list.push({ ...data, id: d.id });
+          }
+        });
+        list.sort(
+          (a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+        );
+        callback(list);
+      },
+      (err) => {
+        console.warn('Task submissions listener warning:', err);
+        callback([]);
+      }
+    );
+  } catch (e) {
+    console.warn('Could not setup task submissions listener:', e);
+    callback([]);
+    return () => {};
+  }
+}
+
+/**
+ * Save a new task submission (a member can submit the same form multiple times for different purposes)
+ */
+export async function saveTaskSubmission(sub: TaskSubmission): Promise<string> {
+  try {
+    const now = new Date().toISOString();
+    const cleanSub = {
+      formId: sub.formId,
+      formTitle: sub.formTitle || '',
+      memberAlias: sub.memberAlias,
+      memberName: sub.memberName || sub.memberAlias,
+      purpose: sub.purpose || 'General Task Report',
+      status: sub.status || 'active',
+      createdAt: sub.createdAt || now,
+      updatedAt: now,
+      answers: sub.answers || {},
+      infoUpdates: sub.infoUpdates || []
+    };
+
+    if (sub.id && !sub.id.startsWith('new_') && !sub.id.startsWith('temp_')) {
+      const docRef = doc(TASK_SUBMISSIONS_COLLECTION, sub.id);
+      await setDoc(docRef, cleanSub, { merge: true });
+      return sub.id;
+    } else {
+      const docRef = await addDoc(TASK_SUBMISSIONS_COLLECTION, cleanSub);
+      await updateDoc(docRef, { id: docRef.id });
+      return docRef.id;
+    }
+  } catch (err) {
+    console.error('Error saving task submission:', err);
+    throw err;
+  }
+}
+
+/**
+ * Add a new info update to an allowed box/field in an existing task submission
+ */
+export async function addTaskInfoUpdate(
+  submissionId: string,
+  update: TaskInfoUpdate
+): Promise<void> {
+  try {
+    const docRef = doc(TASK_SUBMISSIONS_COLLECTION, submissionId);
+    await updateDoc(docRef, {
+      infoUpdates: arrayUnion(update),
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error adding task info update:', err);
+    throw err;
+  }
+}
+
+/**
+ * Delete a task submission
+ */
+export async function deleteTaskSubmission(id: string): Promise<void> {
+  try {
+    const docRef = doc(TASK_SUBMISSIONS_COLLECTION, id);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error('Error deleting task submission:', err);
+    throw err;
+  }
+}
+

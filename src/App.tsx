@@ -179,7 +179,6 @@ export default function App() {
           ) : currentRoute === 'info' ? (
             <MemberInfoPortal
               settings={settings}
-              questions={questions}
               onNavigateToCandidate={handleNavigateToCandidate}
             />
           ) : (

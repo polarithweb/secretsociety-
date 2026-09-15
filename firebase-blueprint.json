@@ -80,6 +80,53 @@
         "photos": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["questionId", "memberAlias", "content", "submittedAt"]
+    },
+    "task_forms": {
+      "title": "Member Task Form",
+      "description": "Task questionnaires for members in the /#/info task portal, completely separate from candidate test",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string" },
+              "description": { "type": "string" },
+              "type": { "type": "string" },
+              "options": { "type": "array", "items": { "type": "string" } },
+              "required": { "type": "boolean" },
+              "allowAddInfo": { "type": "boolean" }
+            },
+            "required": ["id", "label", "type"]
+          }
+        }
+      },
+      "required": ["title", "questions"]
+    },
+    "task_submissions": {
+      "title": "Task Submission",
+      "description": "Form submissions by members for distinct purposes with continuous information updates",
+      "type": "object",
+      "properties": {
+        "formId": { "type": "string" },
+        "formTitle": { "type": "string" },
+        "memberAlias": { "type": "string" },
+        "memberName": { "type": "string" },
+        "purpose": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "answers": { "type": "object" },
+        "infoUpdates": { "type": "array" }
+      },
+      "required": ["formId", "memberAlias", "purpose", "answers", "createdAt"]
     }
   }
 }

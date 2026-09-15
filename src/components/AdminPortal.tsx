@@ -52,6 +52,8 @@ import {
   subscribeToMemberInfoEntries,
   deleteMemberInfoEntry
 } from '../lib/firebase';
+import { AdminTaskFormsManager } from './AdminTaskFormsManager';
+import { AdminTaskSubmissionsViewer } from './AdminTaskSubmissionsViewer';
 
 interface AdminPortalProps {
   settings: SocietySettings;
@@ -76,7 +78,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [authError, setAuthError] = useState(false);
 
   // Active tab in admin portal
-  const [activeTab, setActiveTab] = useState<'questions' | 'submissions' | 'member_intel' | 'members' | 'settings'>('questions');
+  const [activeTab, setActiveTab] = useState<
+    'questions' | 'submissions' | 'task_forms' | 'task_submissions' | 'member_intel' | 'members' | 'settings'
+  >('questions');
 
   // Member Intelligence Entries State
   const [memberInfoEntries, setMemberInfoEntries] = useState<MemberInfoEntry[]>([]);
@@ -620,7 +624,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           }`}
         >
           <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-          <span>Questions</span>
+          <span>Candidate Exam</span>
           <span className="font-mono text-[10px] opacity-75">({questions.length})</span>
         </button>
 
@@ -634,22 +638,34 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           }`}
         >
           <UserCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-          <span>Answersheets</span>
+          <span>Candidate Answersheets</span>
           <span className="font-mono text-[10px] opacity-75">({submissions.length})</span>
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('member_intel')}
+          onClick={() => setActiveTab('task_forms')}
           className={`pb-3 px-3 sm:px-4 font-display text-[11px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.15em] transition-colors border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap ${
-            activeTab === 'member_intel'
+            activeTab === 'task_forms'
+              ? 'border-white text-white font-bold'
+              : 'border-transparent text-white/60 hover:text-white'
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+          <span>Member Task Forms</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('task_submissions')}
+          className={`pb-3 px-3 sm:px-4 font-display text-[11px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.15em] transition-colors border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap ${
+            activeTab === 'task_submissions'
               ? 'border-white text-white font-bold'
               : 'border-transparent text-white/60 hover:text-white'
           }`}
         >
           <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
-          <span>Member Intel Logs</span>
-          <span className="font-mono text-[10px] opacity-75">({memberInfoEntries.length})</span>
+          <span>Member Task Filings & Logs</span>
         </button>
 
         <button
@@ -686,10 +702,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h2 className="font-display text-base sm:text-lg font-semibold tracking-wide uppercase text-white">
-                Application & Inquest Questions
+                Candidate Examination Questions (/#/)
               </h2>
               <p className="font-editorial italic text-xs sm:text-sm text-white/75">
-                Configure examination questions for candidate applications and member info portal.
+                Configure test questions for the public candidate application portal. Member task forms are managed independently in the Member Task Forms tab.
               </p>
             </div>
 
@@ -1248,6 +1264,12 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           )}
         </div>
       )}
+
+      {/* TAB: MEMBER TASK FORMS (/#/info Task System) */}
+      {activeTab === 'task_forms' && <AdminTaskFormsManager />}
+
+      {/* TAB: MEMBER TASK FILINGS & LOGS (/#/info Filings by purpose & continuous updates) */}
+      {activeTab === 'task_submissions' && <AdminTaskSubmissionsViewer />}
 
       {/* TAB 4: MEMBERS & PASSWORDS */}
       {activeTab === 'members' && (

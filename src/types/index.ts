@@ -92,3 +92,55 @@ export interface Answersheet {
   adminNotes?: string;
   isMemberSubmission?: boolean;
 }
+
+// ----------------------------------------------------
+// DEDICATED MEMBER TASK & INFO SYSTEM (SEPARATE FROM CANDIDATE TEST)
+// ----------------------------------------------------
+
+export type TaskFieldType = 'text' | 'textarea' | 'multiple_choice' | 'scale' | 'photo';
+
+export interface TaskQuestion {
+  id: string;
+  label: string;
+  description?: string;
+  type: TaskFieldType;
+  options?: string[];
+  required: boolean;
+  allowAddInfo: boolean; // Member can add new information to this box anytime
+  placeholder?: string;
+}
+
+export interface TaskForm {
+  id: string;
+  title: string;
+  description: string;
+  category?: string;
+  isActive: boolean;
+  createdAt: string;
+  questions: TaskQuestion[];
+}
+
+export interface TaskInfoUpdate {
+  id: string;
+  questionId: string;
+  questionLabel: string;
+  content: string;
+  addedAt: string;
+  memberAlias: string;
+  memberName?: string;
+}
+
+export interface TaskSubmission {
+  id: string;
+  formId: string;
+  formTitle: string;
+  memberAlias: string;
+  memberName?: string;
+  purpose: string; // Distinct purpose for this submission (a member can fill the same form multiple times for different purposes)
+  status: 'active' | 'archived' | 'completed';
+  createdAt: string;
+  updatedAt: string;
+  answers: Record<string, any>;
+  infoUpdates: TaskInfoUpdate[];
+}
+

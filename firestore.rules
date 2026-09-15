@@ -31,5 +31,17 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    // Task Forms configured for the member info task system
+    match /task_forms/{formId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Task Submissions filed by members for various purposes with continuous info updates
+    match /task_submissions/{subId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

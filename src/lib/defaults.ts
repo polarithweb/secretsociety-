@@ -1,4 +1,4 @@
-import { Question, SocietySettings, MemberAccount } from '../types';
+import { Question, SocietySettings, MemberAccount, TaskForm } from '../types';
 
 export const DEFAULT_BACKGROUND_PRESETS = [
   {
@@ -35,8 +35,8 @@ export const DEFAULT_SETTINGS: SocietySettings = {
   oathIntro: 'Please provide accurate and candid responses. All submitted information is directly reviewed by the council.',
   closingMessage: 'Your application has been received and entered into the council records. The council will review your responses.',
   memberPortalHeading: 'secretsociety_ind',
-  memberPortalNotice: 'Confidential Member Inquest. Authorized credentials required. Respond to the active society directives and verification questions below.',
-  memberClosingMessage: 'Your member submission has been cryptographically recorded in the inner society archives.'
+  memberPortalNotice: 'Member Task & Information Operations. Select or search a task directive, fill out the form for your specific purpose, and log ongoing updates in authorized boxes.',
+  memberClosingMessage: 'Your member task submission and updates have been cryptographically recorded.'
 };
 
 export const DEFAULT_MEMBERS: MemberAccount[] = [
@@ -51,5 +51,83 @@ export const DEFAULT_MEMBERS: MemberAccount[] = [
   }
 ];
 
-// No hardcoded questions - all questions are configured from the Admin Portal
+// No hardcoded candidate questions - all questions are configured from the Admin Portal
 export const DEFAULT_QUESTIONS: Question[] = [];
+
+// Default initial Task Forms for the Info Portal task system
+export const DEFAULT_TASK_FORMS: TaskForm[] = [
+  {
+    id: 'task_form_intel_report',
+    title: 'Intelligence & Surveillance Debrief',
+    description: 'Standard operational debrief form for member intelligence gathering, field observations, and continuous updates.',
+    category: 'Intelligence',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    questions: [
+      {
+        id: 'q_target_subject',
+        label: 'Target Entity / Subject Description',
+        description: 'Detail the entity, organization, or individual being monitored.',
+        type: 'text',
+        required: true,
+        allowAddInfo: false,
+        placeholder: 'e.g., Vanguard Holdings or Subject X'
+      },
+      {
+        id: 'q_initial_findings',
+        label: 'Initial Findings & Summary',
+        description: 'Provide a concise overview of initial observations.',
+        type: 'textarea',
+        required: true,
+        allowAddInfo: false,
+        placeholder: 'Summarize initial encounter or discovery...'
+      },
+      {
+        id: 'q_continuous_intel',
+        label: 'Continuous Field Updates & New Information Box',
+        description: 'Allowed box: Members can append new information, logs, and findings to this field anytime.',
+        type: 'textarea',
+        required: false,
+        allowAddInfo: true,
+        placeholder: 'Enter new developments, timestamps, or ongoing intel...'
+      },
+      {
+        id: 'q_risk_level',
+        label: 'Current Threat Assessment (1-10)',
+        description: 'Estimated operational sensitivity rating.',
+        type: 'scale',
+        required: false,
+        allowAddInfo: false
+      }
+    ]
+  },
+  {
+    id: 'task_form_resource_log',
+    title: 'Resource & Operation Log',
+    description: 'Form to track assets, secure meeting nodes, and subsequent field reports for various operational objectives.',
+    category: 'Operations',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    questions: [
+      {
+        id: 'q_location_node',
+        label: 'Designated Node or Sector',
+        description: 'Geographic or codenamed node identifier.',
+        type: 'text',
+        required: true,
+        allowAddInfo: false,
+        placeholder: 'Sector or Location identifier...'
+      },
+      {
+        id: 'q_ongoing_logs',
+        label: 'Ongoing Activity & Notes (Allowed Box)',
+        description: 'Add new information and notes anytime as the operation progresses.',
+        type: 'textarea',
+        required: false,
+        allowAddInfo: true,
+        placeholder: 'Log new events, contacts, or updates...'
+      }
+    ]
+  }
+];
+

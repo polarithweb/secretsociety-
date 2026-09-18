@@ -25,7 +25,9 @@ import {
   AlertCircle,
   MessageSquare,
   Clock,
-  BookOpen
+  BookOpen,
+  Bell,
+  Send
 } from 'lucide-react';
 import {
   Question,
@@ -56,6 +58,7 @@ import {
 import { AdminTaskFormsManager } from './AdminTaskFormsManager';
 import { AdminTaskSubmissionsViewer } from './AdminTaskSubmissionsViewer';
 import { AdminKnowledgeManager } from './AdminKnowledgeManager';
+import { AdminNotificationsManager } from './AdminNotificationsManager';
 
 interface AdminPortalProps {
   settings: SocietySettings;
@@ -81,8 +84,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   // Active tab in admin portal
   const [activeTab, setActiveTab] = useState<
-    'questions' | 'submissions' | 'task_forms' | 'task_submissions' | 'knowledge' | 'member_intel' | 'members' | 'settings'
+    'questions' | 'submissions' | 'task_forms' | 'task_submissions' | 'notifications' | 'knowledge' | 'member_intel' | 'members' | 'settings'
   >('questions');
+
+  // Preselected member for written notification dispatch
+  const [preselectedNoticeMemberAlias, setPreselectedNoticeMemberAlias] = useState<string | null>(null);
 
   // Member Intelligence Entries State
   const [memberInfoEntries, setMemberInfoEntries] = useState<MemberInfoEntry[]>([]);
@@ -668,6 +674,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         >
           <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
           <span>Member Task Filings & Logs</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setPreselectedNoticeMemberAlias(null);
+            setActiveTab('notifications');
+          }}
+          className={`pb-3 px-3 sm:px-4 font-display text-[11px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.15em] transition-colors border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap ${
+            activeTab === 'notifications'
+              ? 'border-white text-white font-bold'
+              : 'border-transparent text-white/60 hover:text-white'
+          }`}
+        >
+          <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+          <span>Member Notices</span>
         </button>
 
         <button
@@ -1286,6 +1308,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       {/* TAB: MEMBER TASK FILINGS & LOGS (/#/info Filings by purpose & continuous updates) */}
       {activeTab === 'task_submissions' && <AdminTaskSubmissionsViewer />}
 
+      {/* TAB: MEMBER WRITTEN NOTIFICATIONS & DIRECTIVES */}
+      {activeTab === 'notifications' && (
+        <AdminNotificationsManager
+          members={members}
+          preselectedMemberAlias={preselectedNoticeMemberAlias}
+          onClearPreselectedMember={() => setPreselectedNoticeMemberAlias(null)}
+        />
+      )}
+
       {/* TAB: KNOWLEDGE BASE ARTICLES (/#/knowledge Full Text Editor & Media) */}
       {activeTab === 'knowledge' && <AdminKnowledgeManager />}
 
@@ -1395,6 +1426,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
                   {/* Member Actions */}
                   <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreselectedNoticeMemberAlias(mem.alias);
+                        setActiveTab('notifications');
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg border border-white/20 hover:border-white bg-black text-white font-mono text-xs transition-colors flex items-center gap-1.5"
+                      title={`Dispatch written notice to ${mem.alias}`}
+                    >
+                      <Bell className="w-3.5 h-3.5 text-white" />
+                      <span>Notice</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleEditMember(mem)}

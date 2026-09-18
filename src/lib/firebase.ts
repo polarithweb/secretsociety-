@@ -25,7 +25,8 @@ import {
   TaskForm,
   TaskSubmission,
   TaskInfoUpdate,
-  KnowledgeArticle
+  KnowledgeArticle,
+  MemberNotification
 } from '../types';
 import {
   DEFAULT_SETTINGS,
@@ -51,6 +52,7 @@ const MEMBER_INFO_ENTRIES_COLLECTION = collection(db, 'member_info_entries');
 const TASK_FORMS_COLLECTION = collection(db, 'task_forms');
 const TASK_SUBMISSIONS_COLLECTION = collection(db, 'task_submissions');
 const KNOWLEDGE_ARTICLES_COLLECTION = collection(db, 'knowledge_articles');
+const MEMBER_NOTIFICATIONS_COLLECTION = collection(db, 'member_notifications');
 
 /**
  * Fetch or initialize global society settings
@@ -982,4 +984,213 @@ export async function clearAllKnowledgeArticles(): Promise<void> {
     throw err;
   }
 }
+
+// ----------------------------------------------------
+// MEMBER WRITTEN NOTIFICATIONS & DIRECTIVES
+// ----------------------------------------------------
+
+/**
+ * Local cache key for optimistic acknowledgement
+ */
+function getLocalAcknowledgedNotificationIds(memberAlias: string): string[] {
+  try {
+    const raw = localStorage.getItem(`secretsociety_ack_notifications_${memberAlias}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function recordLocalAcknowledgedNotification(notificationId: string, memberAlias: string): void {
+  try {
+    const existing = getLocalAcknowledgedNotificationIds(memberAlias);
+    if (!existing.includes(notificationId)) {
+      existing.push(notificationId);
+      localStorage.setItem(`secretsociety_ack_notifications_${memberAlias}`, JSON.stringify(existing));
+    }
+  } catch (e) {
+    // Ignore storage errors
+  }
+}
+
+/**
+ * Send a written notification to all or selected members
+ */
+export async function sendMemberNotification(
+  notificationData: Omit<MemberNotification, 'id' | 'createdAt' | 'acknowledgedBy'>
+): Promise<MemberNotification> {
+  const now = new Date().toISOString();
+  const id = `notice_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+  const newNotice: MemberNotification = {
+    id,
+    title: notificationData.title.trim() || 'Council Directive',
+    message: notificationData.message.trim(),
+    targetType: notificationData.targetType,
+    targetMemberAliases: notificationData.targetType === 'all' ? [] : notificationData.targetMemberAliases || [],
+    acknowledgedBy: [],
+    urgency: notificationData.urgency || 'standard',
+    createdAt: now,
+    senderName: notificationData.senderName || 'Council Administration'
+  };
+
+  try {
+    const docRef = doc(MEMBER_NOTIFICATIONS_COLLECTION, id);
+    await setDoc(docRef, newNotice);
+  } catch (err) {
+    console.error('Error saving notification to Firestore:', err);
+    // Fallback: save to localStorage
+    try {
+      const stored = localStorage.getItem('secretsociety_local_notifications');
+      const list: MemberNotification[] = stored ? JSON.parse(stored) : [];
+      list.unshift(newNotice);
+      localStorage.setItem('secretsociety_local_notifications', JSON.stringify(list));
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  return newNotice;
+}
+
+/**
+ * Get all notifications dispatched by admin
+ */
+export async function getMemberNotifications(): Promise<MemberNotification[]> {
+  try {
+    const snap = await getDocs(MEMBER_NOTIFICATIONS_COLLECTION);
+    const notices: MemberNotification[] = [];
+    snap.forEach((d) => {
+      notices.push({ ...(d.data() as MemberNotification), id: d.id });
+    });
+
+    notices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return notices;
+  } catch (err) {
+    console.warn('Error fetching member notifications from Firestore:', err);
+    try {
+      const stored = localStorage.getItem('secretsociety_local_notifications');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+}
+
+/**
+ * Real-time subscription to member notifications
+ */
+export function subscribeToMemberNotifications(
+  callback: (notifications: MemberNotification[]) => void
+): () => void {
+  try {
+    const unsubscribe = onSnapshot(
+      MEMBER_NOTIFICATIONS_COLLECTION,
+      (snap) => {
+        const notices: MemberNotification[] = [];
+        snap.forEach((d) => {
+          notices.push({ ...(d.data() as MemberNotification), id: d.id });
+        });
+        notices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        callback(notices);
+      },
+      (err) => {
+        console.warn('Member notifications subscription warning:', err);
+      }
+    );
+    return unsubscribe;
+  } catch (err) {
+    console.warn('Failed to subscribe to member notifications:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Filter pending unacknowledged notifications for a specific member
+ */
+export function filterPendingNotificationsForMember(
+  notices: MemberNotification[],
+  memberAlias: string
+): MemberNotification[] {
+  if (!memberAlias) return [];
+  const localAcks = getLocalAcknowledgedNotificationIds(memberAlias);
+
+  return notices.filter((notice) => {
+    // 1. Check target audience
+    const isTargeted =
+      notice.targetType === 'all' ||
+      (Array.isArray(notice.targetMemberAliases) &&
+        notice.targetMemberAliases.some(
+          (alias) => alias.toLowerCase() === memberAlias.toLowerCase()
+        ));
+
+    if (!isTargeted) return false;
+
+    // 2. Check if already acknowledged in remote array
+    const acknowledgedRemote =
+      Array.isArray(notice.acknowledgedBy) &&
+      notice.acknowledgedBy.some(
+        (alias) => alias.toLowerCase() === memberAlias.toLowerCase()
+      );
+
+    if (acknowledgedRemote) return false;
+
+    // 3. Check if acknowledged in local storage
+    if (localAcks.includes(notice.id)) return false;
+
+    return true;
+  });
+}
+
+/**
+ * Mark a notification as acknowledged by a member ("OK" clicked)
+ */
+export async function acknowledgeNotification(
+  notificationId: string,
+  memberAlias: string
+): Promise<void> {
+  if (!notificationId || !memberAlias) return;
+
+  // 1. Immediately cache locally so it never displays again on this device even if offline
+  recordLocalAcknowledgedNotification(notificationId, memberAlias);
+
+  // 2. Update Firestore document
+  try {
+    const docRef = doc(MEMBER_NOTIFICATIONS_COLLECTION, notificationId);
+    await updateDoc(docRef, {
+      acknowledgedBy: arrayUnion(memberAlias)
+    });
+  } catch (err) {
+    console.warn('Could not update acknowledgedBy in Firestore:', err);
+    // Also try setDoc with merge if document update failed
+    try {
+      const docRef = doc(MEMBER_NOTIFICATIONS_COLLECTION, notificationId);
+      await setDoc(
+        docRef,
+        {
+          acknowledgedBy: arrayUnion(memberAlias)
+        },
+        { merge: true }
+      );
+    } catch (fallbackErr) {
+      console.error('Fatal fallback failure acknowledging notification:', fallbackErr);
+    }
+  }
+}
+
+/**
+ * Permanently delete a notification (from Admin Portal)
+ */
+export async function deleteMemberNotification(notificationId: string): Promise<void> {
+  if (!notificationId) return;
+
+  try {
+    const docRef = doc(MEMBER_NOTIFICATIONS_COLLECTION, notificationId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error('Error deleting member notification:', err);
+    throw err;
+  }
+}
+
 

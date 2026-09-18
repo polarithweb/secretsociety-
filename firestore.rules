@@ -49,5 +49,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    // Written member notifications sent by admin, read and acknowledged by members
+    match /member_notifications/{notificationId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

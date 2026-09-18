@@ -22,7 +22,9 @@ import {
   ChevronUp,
   Tag,
   Check,
-  BookOpen
+  BookOpen,
+  Bell,
+  AlertTriangle
 } from 'lucide-react';
 import {
   SocietySettings,
@@ -30,7 +32,8 @@ import {
   TaskForm,
   TaskSubmission,
   TaskQuestion,
-  TaskInfoUpdate
+  TaskInfoUpdate,
+  MemberNotification
 } from '../types';
 import {
   authenticateMember,
@@ -40,7 +43,11 @@ import {
   subscribeToTaskSubmissions,
   saveTaskSubmission,
   addTaskInfoUpdate,
-  deleteTaskSubmission
+  deleteTaskSubmission,
+  getMemberNotifications,
+  subscribeToMemberNotifications,
+  filterPendingNotificationsForMember,
+  acknowledgeNotification
 } from '../lib/firebase';
 import { PhotoUploader } from './PhotoUploader';
 
@@ -115,6 +122,43 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
     }, activeMember.alias);
     return () => unsubscribeSubmissions();
   }, [activeMember]);
+
+  // Member Written Notifications State (Appears on screen upon login)
+  const [pendingNotifications, setPendingNotifications] = useState<MemberNotification[]>([]);
+  const [isAcknowledgingNotice, setIsAcknowledgingNotice] = useState(false);
+
+  // Subscribe to pending notifications targeted to this member
+  useEffect(() => {
+    if (!activeMember) {
+      setPendingNotifications([]);
+      return;
+    }
+
+    const checkAndSet = (notices: MemberNotification[]) => {
+      const pending = filterPendingNotificationsForMember(notices, activeMember.alias);
+      setPendingNotifications(pending);
+    };
+
+    getMemberNotifications().then(checkAndSet).catch(console.warn);
+    const unsubscribe = subscribeToMemberNotifications(checkAndSet);
+    return () => unsubscribe();
+  }, [activeMember]);
+
+  // Acknowledge notification: member clicks "OK" under notification box
+  const handleAcknowledgeNotification = async (noticeId: string) => {
+    if (!activeMember) return;
+    setIsAcknowledgingNotice(true);
+    try {
+      // Optimistically remove immediately from screen
+      setPendingNotifications((prev) => prev.filter((n) => n.id !== noticeId));
+      // Persist acknowledgment so it never shows again
+      await acknowledgeNotification(noticeId, activeMember.alias);
+    } catch (err) {
+      console.error('Failed to acknowledge notification:', err);
+    } finally {
+      setIsAcknowledgingNotice(false);
+    }
+  };
 
   // Handle member login
   const handleLogin = async (e: React.FormEvent) => {
@@ -445,6 +489,122 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
   // =========================================================================
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      {/* =========================================================================
+          PRIORITY WRITTEN NOTIFICATION OVERLAY (Appears on screen at first upon login)
+          ========================================================================= */}
+      {pendingNotifications.length > 0 && (() => {
+        const currentNotice = pendingNotifications[0];
+        const isUrgent = currentNotice.urgency === 'urgent';
+        const remainingCount = pendingNotifications.length;
+
+        return (
+          <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+            <div className="w-full max-w-xl bg-black border-2 border-white/40 rounded-2xl shadow-[0_0_50px_rgba(255,255,255,0.15)] overflow-hidden flex flex-col my-auto">
+              
+              {/* Top Header of Notification Box */}
+              <div
+                className={`p-4 sm:p-5 border-b flex items-start justify-between gap-3 ${
+                  isUrgent ? 'bg-red-950/40 border-red-500/50' : 'bg-white/5 border-white/20'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`p-2.5 rounded-xl border ${
+                      isUrgent
+                        ? 'bg-red-500/20 border-red-500/50 text-red-300'
+                        : 'bg-white/10 border-white/30 text-white'
+                    }`}
+                  >
+                    {isUrgent ? (
+                      <AlertTriangle className="w-5 h-5 text-red-300" />
+                    ) : (
+                      <Bell className="w-5 h-5 text-white" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 rounded border font-bold ${
+                          isUrgent
+                            ? 'bg-red-500/20 border-red-500 text-red-300'
+                            : 'bg-white/10 border-white/20 text-white/80'
+                        }`}
+                      >
+                        {isUrgent ? 'URGENT COUNCIL DIRECTIVE' : 'OFFICIAL COUNCIL NOTICE'}
+                      </span>
+                      {remainingCount > 1 && (
+                        <span className="font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-white/10 border border-white/15 text-white/70">
+                          Directive 1 of {remainingCount}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="font-display text-base sm:text-lg font-bold tracking-wide uppercase text-white mt-1">
+                      {currentNotice.title}
+                    </h2>
+                  </div>
+                </div>
+              </div>
+
+              {/* Meta information */}
+              <div className="px-5 py-2.5 bg-white/[0.02] border-b border-white/10 flex items-center justify-between text-xs font-mono text-white/60">
+                <div className="flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-white/40" />
+                  <span>
+                    Directed to: <strong className="text-white">{activeMember.alias}</strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-white/40" />
+                  <span>
+                    {new Date(currentNotice.createdAt).toLocaleString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Written Notification Content Body */}
+              <div className="p-5 sm:p-7 space-y-4 max-h-[50vh] overflow-y-auto">
+                <div className="font-mono text-xs sm:text-sm text-white/90 whitespace-pre-wrap leading-relaxed bg-white/5 border border-white/15 rounded-xl p-4 sm:p-5">
+                  {currentNotice.message}
+                </div>
+              </div>
+
+              {/* Notification Box Footer with "OK" Button DIRECTLY UNDER */}
+              <div className="p-4 sm:p-5 border-t border-white/20 bg-white/[0.03] flex flex-col sm:flex-row items-center justify-between gap-3">
+                <p className="font-editorial italic text-xs text-white/50 text-center sm:text-left">
+                  Click OK to acknowledge. This notice will not show again once acknowledged.
+                </p>
+
+                <button
+                  type="button"
+                  disabled={isAcknowledgingNotice}
+                  onClick={() => handleAcknowledgeNotification(currentNotice.id)}
+                  className="w-full sm:w-auto min-w-[140px] px-8 py-3 rounded-xl bg-white text-black hover:bg-neutral-200 active:scale-95 font-display text-xs sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                >
+                  {isAcknowledgingNotice ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 text-black" />
+                      <span>OK</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Header Bar */}
       <div className="bg-black border border-white/20 rounded-xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">

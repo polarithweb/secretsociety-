@@ -165,5 +165,21 @@ export interface KnowledgeArticle {
   updatedAt: string;
 }
 
+// ----------------------------------------------------
+// COUNCIL WRITTEN MEMBER NOTIFICATIONS & DISPATCHES
+// ----------------------------------------------------
+
+export interface MemberNotification {
+  id: string;
+  title: string;
+  message: string;
+  targetType: 'all' | 'specific';
+  targetMemberAliases: string[]; // Specific member aliases e.g. ['AGENT_1', 'SHADOW_4']
+  acknowledgedBy: string[]; // Member aliases who clicked OK to dismiss
+  urgency: 'standard' | 'urgent';
+  createdAt: string;
+  senderName?: string;
+}
+
 export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge';
 

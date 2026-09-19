@@ -1,4 +1,4 @@
-import { Question, SocietySettings, MemberAccount, TaskForm, KnowledgeArticle } from '../types';
+import { Question, SocietySettings, MemberAccount, TaskForm, KnowledgeArticle, CouncilVideo } from '../types';
 
 export const DEFAULT_BACKGROUND_PRESETS = [
   {
@@ -193,4 +193,32 @@ export const DEFAULT_KNOWLEDGE_ARTICLES: KnowledgeArticle[] = [
 <p>Consult this archive whenever operational ambiguity arises in the field.</p>`
   }
 ];
+
+export const DEFAULT_COUNCIL_VIDEOS: CouncilVideo[] = [
+  {
+    id: 'vid_briefing_01',
+    title: 'Council Protocol: The Cosmic Veil & Perimeter Surveillance',
+    youtubeUrl: 'https://www.youtube.com/watch?v=1la4bws6mIE',
+    youtubeVideoId: '1la4bws6mIE',
+    description: 'High Council briefing on cosmic observation nodes and signal integrity protocols. Mandatory review for all active operatives.',
+    category: 'Briefings',
+    order: 1,
+    isPublished: true,
+    uploadedByAlias: 'ADMIN_COUNCIL',
+    createdAt: new Date(Date.now() - 86400000 * 5).toISOString()
+  },
+  {
+    id: 'vid_directive_02',
+    title: 'Operational Directive: Encryption Keys and Secure Reconnaissance',
+    youtubeUrl: 'https://www.youtube.com/watch?v=sB1ke-LdGFI',
+    youtubeVideoId: 'sB1ke-LdGFI',
+    description: 'Guidelines on field telemetry collection, discrete logging of intelligence, and cryptographic handshake procedures.',
+    category: 'Directives',
+    order: 2,
+    isPublished: true,
+    uploadedByAlias: 'ADMIN_COUNCIL',
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
+  }
+];
+
 

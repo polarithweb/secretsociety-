@@ -26,14 +26,16 @@ import {
   TaskSubmission,
   TaskInfoUpdate,
   KnowledgeArticle,
-  MemberNotification
+  MemberNotification,
+  CouncilVideo
 } from '../types';
 import {
   DEFAULT_SETTINGS,
   DEFAULT_QUESTIONS,
   DEFAULT_MEMBERS,
   DEFAULT_TASK_FORMS,
-  DEFAULT_KNOWLEDGE_ARTICLES
+  DEFAULT_KNOWLEDGE_ARTICLES,
+  DEFAULT_COUNCIL_VIDEOS
 } from './defaults';
 
 // Initialize Firebase App instance
@@ -53,6 +55,7 @@ const TASK_FORMS_COLLECTION = collection(db, 'task_forms');
 const TASK_SUBMISSIONS_COLLECTION = collection(db, 'task_submissions');
 const KNOWLEDGE_ARTICLES_COLLECTION = collection(db, 'knowledge_articles');
 const MEMBER_NOTIFICATIONS_COLLECTION = collection(db, 'member_notifications');
+const COUNCIL_VIDEOS_COLLECTION = collection(db, 'council_videos');
 
 /**
  * Fetch or initialize global society settings
@@ -1192,5 +1195,231 @@ export async function deleteMemberNotification(notificationId: string): Promise<
     throw err;
   }
 }
+
+// =========================================================================
+// COUNCIL VIDEOS (/#/videos YouTube Collection Portal)
+// =========================================================================
+
+const LOCAL_STORAGE_VIDEOS_KEY = 'secretsociety_council_videos_v1';
+
+/**
+ * Robust YouTube video ID parser supporting:
+ * - https://www.youtube.com/watch?v=VIDEO_ID
+ * - https://youtu.be/VIDEO_ID
+ * - https://www.youtube.com/embed/VIDEO_ID
+ * - https://www.youtube.com/shorts/VIDEO_ID
+ * - https://m.youtube.com/watch?v=VIDEO_ID
+ * - raw 11-char ID
+ */
+export function extractYouTubeVideoId(url: string): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+
+  // Standard watch URL: ?v=ID or &v=ID
+  const vMatch = trimmed.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+  if (vMatch) return vMatch[1];
+
+  // youtu.be/ID
+  const shortMatch = trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shortMatch) return shortMatch[1];
+
+  // embed/ID or shorts/ID or live/ID or v/ID
+  const pathMatch = trimmed.match(/(?:embed|shorts|live|v)\/([a-zA-Z0-9_-]{11})/);
+  if (pathMatch) return pathMatch[1];
+
+  // Raw 11-character ID
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  return null;
+}
+
+/**
+ * Generate standard high-quality YouTube video thumbnail URL
+ */
+export function getYouTubeThumbnail(videoId: string, quality: 'hq' | 'maxres' | 'mq' = 'hq'): string {
+  if (!videoId) return '';
+  if (quality === 'maxres') {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  }
+  if (quality === 'mq') {
+    return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+  }
+  return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+}
+
+/**
+ * Get all council videos from Firestore (or local fallback)
+ */
+export async function getCouncilVideos(): Promise<CouncilVideo[]> {
+  try {
+    const q = query(COUNCIL_VIDEOS_COLLECTION, orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+
+    if (!snap.empty) {
+      const list: CouncilVideo[] = [];
+      snap.forEach((d) => {
+        list.push({ id: d.id, ...d.data() } as CouncilVideo);
+      });
+      // Save local backup
+      try {
+        localStorage.setItem(LOCAL_STORAGE_VIDEOS_KEY, JSON.stringify(list));
+      } catch (e) {
+        // ignore storage quota errors
+      }
+      return list;
+    } else {
+      // Seed default videos to Firestore so collection is populated
+      const seededVideos: CouncilVideo[] = [];
+      for (const defVid of DEFAULT_COUNCIL_VIDEOS) {
+        try {
+          const docRef = doc(COUNCIL_VIDEOS_COLLECTION, defVid.id);
+          await setDoc(docRef, defVid);
+          seededVideos.push(defVid);
+        } catch (seedErr) {
+          console.warn('Notice seeding default video:', seedErr);
+        }
+      }
+      if (seededVideos.length > 0) {
+        return seededVideos;
+      }
+    }
+  } catch (err) {
+    console.warn('Firestore fetch failed for council videos, attempting local cache fallback:', err);
+  }
+
+  // Fallback to local storage or defaults
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_VIDEOS_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  return DEFAULT_COUNCIL_VIDEOS;
+}
+
+/**
+ * Subscribe to council videos collection in real time
+ */
+export function subscribeToCouncilVideos(callback: (videos: CouncilVideo[]) => void): () => void {
+  try {
+    const q = query(COUNCIL_VIDEOS_COLLECTION, orderBy('createdAt', 'desc'));
+    return onSnapshot(
+      q,
+      (snap) => {
+        const list: CouncilVideo[] = [];
+        snap.forEach((d) => {
+          list.push({ id: d.id, ...d.data() } as CouncilVideo);
+        });
+        if (list.length > 0) {
+          try {
+            localStorage.setItem(LOCAL_STORAGE_VIDEOS_KEY, JSON.stringify(list));
+          } catch (e) {
+            // ignore
+          }
+          callback(list);
+        } else {
+          // If empty, fetch or fallback
+          getCouncilVideos().then(callback).catch(() => callback(DEFAULT_COUNCIL_VIDEOS));
+        }
+      },
+      (error) => {
+        console.warn('Real-time videos subscription error, using fallback:', error);
+        getCouncilVideos().then(callback).catch(() => callback(DEFAULT_COUNCIL_VIDEOS));
+      }
+    );
+  } catch (err) {
+    console.warn('Failed to attach real-time video listener:', err);
+    getCouncilVideos().then(callback).catch(() => callback(DEFAULT_COUNCIL_VIDEOS));
+    return () => {};
+  }
+}
+
+/**
+ * Save or update a Council YouTube Video
+ */
+export async function saveCouncilVideo(
+  videoData: Partial<CouncilVideo> & { title: string; youtubeUrl: string; description: string }
+): Promise<CouncilVideo> {
+  const videoId = extractYouTubeVideoId(videoData.youtubeUrl);
+  if (!videoId) {
+    throw new Error('Invalid YouTube URL or Video ID. Please provide a valid YouTube link.');
+  }
+
+  const now = new Date().toISOString();
+  const id = videoData.id || `vid_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+  const finalRecord: CouncilVideo = {
+    id,
+    title: videoData.title.trim(),
+    youtubeUrl: videoData.youtubeUrl.trim(),
+    youtubeVideoId: videoId,
+    description: videoData.description.trim(),
+    category: videoData.category?.trim() || 'General',
+    order: typeof videoData.order === 'number' ? videoData.order : 0,
+    isPublished: videoData.isPublished !== false,
+    uploadedByAlias: videoData.uploadedByAlias || 'ADMIN_COUNCIL',
+    createdAt: videoData.createdAt || now,
+    updatedAt: now
+  };
+
+  try {
+    const docRef = doc(COUNCIL_VIDEOS_COLLECTION, id);
+    await setDoc(docRef, finalRecord, { merge: true });
+  } catch (err) {
+    console.warn('Firestore write warning for video, saving locally:', err);
+  }
+
+  // Update local storage
+  try {
+    const cached = localStorage.getItem(LOCAL_STORAGE_VIDEOS_KEY);
+    let list: CouncilVideo[] = cached ? JSON.parse(cached) : [...DEFAULT_COUNCIL_VIDEOS];
+    const index = list.findIndex((v) => v.id === id);
+    if (index >= 0) {
+      list[index] = finalRecord;
+    } else {
+      list.unshift(finalRecord);
+    }
+    localStorage.setItem(LOCAL_STORAGE_VIDEOS_KEY, JSON.stringify(list));
+  } catch (e) {
+    // ignore
+  }
+
+  return finalRecord;
+}
+
+/**
+ * Permanently delete a Council YouTube Video
+ */
+export async function deleteCouncilVideo(videoId: string): Promise<void> {
+  if (!videoId) return;
+
+  try {
+    const docRef = doc(COUNCIL_VIDEOS_COLLECTION, videoId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.error('Error deleting council video:', err);
+  }
+
+  // Update local cache
+  try {
+    const cached = localStorage.getItem(LOCAL_STORAGE_VIDEOS_KEY);
+    if (cached) {
+      const list: CouncilVideo[] = JSON.parse(cached);
+      const filtered = list.filter((v) => v.id !== videoId);
+      localStorage.setItem(LOCAL_STORAGE_VIDEOS_KEY, JSON.stringify(filtered));
+    }
+  } catch (e) {
+    // ignore
+  }
+}
+
 
 

@@ -181,5 +181,23 @@ export interface MemberNotification {
   senderName?: string;
 }
 
-export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge';
+// ----------------------------------------------------
+// COUNCIL VIDEO REPOSITORY (/#/videos)
+// ----------------------------------------------------
+
+export interface CouncilVideo {
+  id: string;
+  title: string;
+  youtubeUrl: string;
+  youtubeVideoId: string;
+  description: string;
+  category?: string;
+  order?: number;
+  isPublished?: boolean;
+  uploadedByAlias?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge' | 'videos';
 

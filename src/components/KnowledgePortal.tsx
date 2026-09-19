@@ -160,7 +160,7 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
   // =========================================================================
   if (!activeMember) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col justify-between p-4 sm:p-6 lg:p-8 relative selection:bg-white selection:text-black">
+      <div className="min-h-screen bg-transparent text-white flex flex-col justify-between p-4 sm:p-6 lg:p-8 relative selection:bg-white selection:text-black">
         {/* Subtle background ambient */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06)_0%,transparent_60%)] pointer-events-none" />
 
@@ -178,7 +178,7 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
                 <BookOpen className="w-4 h-4 text-white" />
               </div>
             )}
-            <span className="font-display text-sm tracking-widest uppercase font-bold text-white">
+            <span className="font-chancery text-base tracking-wide font-bold text-white">
               {settings.heading || 'secretsociety_ind'}
             </span>
           </div>
@@ -217,7 +217,7 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
               <span className="font-mono text-[10px] uppercase tracking-widest text-white/60 block">
                 Restricted Clearance
               </span>
-              <h1 className="font-display text-xl sm:text-2xl font-bold uppercase tracking-wider text-white">
+              <h1 className="font-chancery text-2xl sm:text-3xl font-bold tracking-wide text-white">
                 Knowledge Repository
               </h1>
               <p className="font-editorial italic text-xs sm:text-sm text-white/70">
@@ -314,7 +314,7 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
   // AUTHENTICATED MEMBER VIEW
   // =========================================================================
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col justify-between selection:bg-white selection:text-black">
+    <div className="min-h-screen bg-transparent text-white flex flex-col justify-between selection:bg-white selection:text-black">
       {/* Top Council Navigation Bar */}
       <header className="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-white/15 px-4 sm:px-6 lg:px-8 py-3">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -333,7 +333,7 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
             )}
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-display text-sm uppercase tracking-widest font-bold text-white">
+                <span className="font-chancery text-base tracking-wide font-bold text-white">
                   {settings.heading || 'secretsociety_ind'}
                 </span>
                 <span className="font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded border border-white/20 bg-white/10 text-white">
@@ -475,7 +475,7 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
                 </span>
               </div>
 
-              <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold uppercase tracking-wider text-white leading-tight">
+              <h1 className="font-chancery text-2xl sm:text-3xl lg:text-4xl font-bold tracking-wide text-white leading-tight">
                 {activeArticle.title}
               </h1>
 
@@ -502,7 +502,7 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
 
             {/* Rendered HTML Article Content with embedded images anywhere in the middle */}
             <article
-              className="font-body text-sm sm:text-base text-white/90 leading-relaxed space-y-4 prose prose-invert max-w-none [&_h1]:font-display [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:uppercase [&_h1]:tracking-wider [&_h1]:text-white [&_h1]:mt-8 [&_h1]:mb-3 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-bold [&_h2]:uppercase [&_h2]:tracking-wider [&_h2]:text-white [&_h2]:mt-7 [&_h2]:mb-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-bold [&_h3]:uppercase [&_h3]:tracking-wider [&_h3]:text-white [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:font-body [&_p]:text-sm [&_p]:sm:text-base [&_p]:text-white/85 [&_p]:leading-relaxed [&_blockquote]:border-l-2 [&_blockquote]:border-white [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:font-editorial [&_blockquote]:text-white/90 [&_blockquote]:my-5 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-2 [&_ul]:my-4 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-2 [&_ol]:my-4 [&_b]:text-white [&_b]:font-bold [&_strong]:text-white [&_strong]:font-bold [&_i]:italic [&_i]:font-editorial [&_u]:underline [&_u]:underline-offset-4 [&_code]:font-mono [&_code]:text-xs [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-white [&_pre]:bg-white/[0.04] [&_pre]:border [&_pre]:border-white/20 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_hr]:border-white/15 [&_hr]:my-8 [&_img]:rounded-lg [&_img]:border [&_img]:border-white/20 [&_img]:max-w-full [&_img]:h-auto [&_img]:my-5 [&_figure]:my-6 [&_figcaption]:font-editorial [&_figcaption]:italic [&_figcaption]:text-xs [&_figcaption]:text-white/60 [&_figcaption]:text-center [&_figcaption]:mt-2"
+              className="font-body text-sm sm:text-base text-white/90 leading-relaxed space-y-4 prose prose-invert max-w-none [&_h1]:font-chancery [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:tracking-wide [&_h1]:text-white [&_h1]:mt-8 [&_h1]:mb-3 [&_h2]:font-chancery [&_h2]:text-xl [&_h2]:font-bold [&_h2]:tracking-wide [&_h2]:text-white [&_h2]:mt-7 [&_h2]:mb-3 [&_h3]:font-chancery [&_h3]:text-base [&_h3]:font-bold [&_h3]:tracking-wide [&_h3]:text-white [&_h3]:mt-6 [&_h3]:mb-2 [&_p]:font-body [&_p]:text-sm [&_p]:sm:text-base [&_p]:text-white/85 [&_p]:leading-relaxed [&_blockquote]:border-l-2 [&_blockquote]:border-white [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:font-editorial [&_blockquote]:text-white/90 [&_blockquote]:my-5 [&_ul]:list-disc [&_ul]:list-inside [&_ul]:space-y-2 [&_ul]:my-4 [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:space-y-2 [&_ol]:my-4 [&_b]:text-white [&_b]:font-bold [&_strong]:text-white [&_strong]:font-bold [&_i]:italic [&_i]:font-editorial [&_u]:underline [&_u]:underline-offset-4 [&_code]:font-mono [&_code]:text-xs [&_code]:bg-white/10 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-white [&_pre]:bg-white/[0.04] [&_pre]:border [&_pre]:border-white/20 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_hr]:border-white/15 [&_hr]:my-8 [&_img]:rounded-lg [&_img]:border [&_img]:border-white/20 [&_img]:max-w-full [&_img]:h-auto [&_img]:my-5 [&_figure]:my-6 [&_figcaption]:font-editorial [&_figcaption]:italic [&_figcaption]:text-xs [&_figcaption]:text-white/60 [&_figcaption]:text-center [&_figcaption]:mt-2"
               dangerouslySetInnerHTML={{ __html: activeArticle.content }}
             />
 
@@ -536,7 +536,7 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
                 <span className="font-mono text-[10px] uppercase tracking-widest text-white/60 block">
                   Classified Council Repository
                 </span>
-                <h1 className="font-display text-2xl sm:text-3xl font-bold uppercase tracking-wider text-white">
+                <h1 className="font-chancery text-2xl sm:text-3xl font-bold tracking-wide text-white">
                   Knowledge & Operational Directives
                 </h1>
                 <p className="font-editorial italic text-xs sm:text-sm text-white/70 max-w-2xl">
@@ -598,7 +598,7 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
             {filteredArticles.length === 0 ? (
               <div className="bg-black border border-white/20 rounded-2xl p-10 sm:p-14 text-center space-y-3">
                 <BookOpen className="w-8 h-8 text-white/40 mx-auto" />
-                <h3 className="font-display text-base font-semibold uppercase tracking-wider text-white">
+                <h3 className="font-chancery text-lg font-semibold tracking-wide text-white">
                   No Knowledge Articles Found
                 </h3>
                 <p className="font-editorial italic text-xs sm:text-sm text-white/60 max-w-sm mx-auto">
@@ -662,7 +662,7 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
                           </span>
                         )}
 
-                        <h3 className="font-display text-base sm:text-lg font-bold uppercase tracking-wider text-white group-hover:text-neutral-200 transition-colors line-clamp-2">
+                        <h3 className="font-chancery text-lg sm:text-xl font-bold tracking-wide text-white group-hover:text-neutral-200 transition-colors line-clamp-2">
                           {article.title}
                         </h3>
 

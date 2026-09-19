@@ -55,5 +55,11 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    // Council YouTube video collection accessible by members, managed by admin
+    match /council_videos/{videoId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

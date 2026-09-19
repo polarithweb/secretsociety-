@@ -174,7 +174,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
             Application Transmitted
           </div>
 
-          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-wider text-white mb-3">
+          <h1 className="font-chancery text-3xl sm:text-4xl font-bold tracking-wide text-white mb-3">
             {settings.heading || 'secretsociety_ind'}
           </h1>
 
@@ -263,7 +263,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
         )}
 
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-[0.16em] uppercase text-white">
+          <h1 className="font-chancery text-3xl sm:text-4xl lg:text-5xl font-bold tracking-wide text-white">
             {settings.heading || 'secretsociety_ind'}
           </h1>
           <p className="font-mono text-xs sm:text-sm tracking-[0.25em] uppercase text-white/70 font-medium mt-2">
@@ -289,7 +289,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section 1: Candidate Profile */}
         <div className="bg-black border border-white/20 rounded-xl p-6 sm:p-7 space-y-5">
-          <div className="flex items-center gap-2 font-display text-xs sm:text-sm font-semibold text-white uppercase tracking-[0.18em]">
+          <div className="flex items-center gap-2 font-chancery text-base sm:text-lg font-semibold text-white tracking-wide">
             <User className="w-4 h-4 text-white" />
             Candidate Credentials
           </div>
@@ -342,7 +342,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
         {/* Section 2: Questions (Set from Admin Portal) */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 font-display text-xs sm:text-sm font-semibold text-white uppercase tracking-[0.18em]">
+            <div className="flex items-center gap-2 font-chancery text-base sm:text-lg font-semibold text-white tracking-wide">
               <Fingerprint className="w-4 h-4 text-white" />
               Examination Questions <span className="font-mono text-xs text-white/60 font-normal">({questions.length})</span>
             </div>
@@ -353,7 +353,7 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
               <div className="w-10 h-10 mx-auto rounded-full bg-black border border-white/30 flex items-center justify-center text-white">
                 <FileText className="w-5 h-5 text-white" />
               </div>
-              <h3 className="font-display text-base font-semibold text-white tracking-wider uppercase">No Questions Configured</h3>
+              <h3 className="font-chancery text-lg font-semibold text-white tracking-wide">No Questions Configured</h3>
               <p className="font-editorial italic text-sm sm:text-base text-white/70 max-w-md mx-auto leading-relaxed">
                 Questions will be populated by the council. Please check back shortly.
               </p>

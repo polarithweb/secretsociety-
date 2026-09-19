@@ -13,8 +13,9 @@ import { CandidateForm } from './components/CandidateForm';
 import { AdminPortal } from './components/AdminPortal';
 import { MemberInfoPortal } from './components/MemberInfoPortal';
 import { KnowledgePortal } from './components/KnowledgePortal';
+import { CouncilVideosPortal } from './components/CouncilVideosPortal';
 
-export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge';
+export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge' | 'videos';
 
 export default function App() {
   const [settings, setSettings] = useState<SocietySettings>(DEFAULT_SETTINGS);
@@ -22,7 +23,7 @@ export default function App() {
   const [submissions, setSubmissions] = useState<Answersheet[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Determine active route based strictly on URL /#/admin, /#/info, /#/knowledge, or pathname
+  // Determine active route based strictly on URL /#/admin, /#/info, /#/knowledge, /#/videos, or pathname
   const detectRoute = (): AppRoute => {
     const path = window.location.pathname.toLowerCase();
     const hash = window.location.hash.toLowerCase();
@@ -58,6 +59,17 @@ export default function App() {
       path.includes('/knowledge')
     ) {
       return 'knowledge';
+    }
+
+    if (
+      hash === '#/videos' ||
+      hash === '#videos' ||
+      hash.startsWith('#/videos') ||
+      path.endsWith('/videos') ||
+      path.endsWith('/videos/') ||
+      path.includes('/videos')
+    ) {
+      return 'videos';
     }
 
     return 'candidate';
@@ -132,7 +144,7 @@ export default function App() {
   // Return to main candidate view
   const handleNavigateToCandidate = () => {
     try {
-      let basePath = window.location.pathname.replace(/\/(admin|info|knowledge)\/?$/i, '');
+      let basePath = window.location.pathname.replace(/\/(admin|info|knowledge|videos)\/?$/i, '');
       if (!basePath) basePath = '/';
       window.history.pushState({}, '', basePath);
       window.location.hash = '';
@@ -160,14 +172,13 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen w-full max-w-full bg-black text-white font-body overflow-x-hidden selection:bg-white selection:text-black">
-      {/* Optional background image if configured in admin portal */}
+      {/* Background image configured in admin portal - clearly visible with no dimming */}
       {settings.backgroundImage && (
         <div
-          className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-25 pointer-events-none"
+          id="custom-background-image"
+          className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none"
           style={{ backgroundImage: `url(${settings.backgroundImage})` }}
-        >
-          <div className="absolute inset-0 bg-black/75" />
-        </div>
+        />
       )}
 
       {/* Main Content Area */}
@@ -200,6 +211,19 @@ export default function App() {
               onNavigateToInfo={() => {
                 window.location.hash = '#/info';
                 setCurrentRoute('info');
+              }}
+            />
+          ) : currentRoute === 'videos' ? (
+            <CouncilVideosPortal
+              settings={settings}
+              onNavigateToCandidate={handleNavigateToCandidate}
+              onNavigateToInfo={() => {
+                window.location.hash = '#/info';
+                setCurrentRoute('info');
+              }}
+              onNavigateToKnowledge={() => {
+                window.location.hash = '#/knowledge';
+                setCurrentRoute('knowledge');
               }}
             />
           ) : (

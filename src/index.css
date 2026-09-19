@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Black Chancery';
+  src: local('Black Chancery'),
+       local('BlackChancery'),
+       url('/fonts/black-chancery.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   *, *::before, *::after {
     box-sizing: border-box;
@@ -17,6 +27,11 @@
   }
 }
 
+.font-chancery {
+  font-family: 'Black Chancery', 'Cinzel', Georgia, serif;
+  letter-spacing: 0.04em;
+}
+
 .font-display {
   font-family: 'Cinzel', serif;
 }
@@ -32,4 +47,5 @@
 .font-body {
   font-family: 'Poppins', sans-serif;
 }
+
 

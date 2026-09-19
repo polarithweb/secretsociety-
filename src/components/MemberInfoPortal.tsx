@@ -24,7 +24,8 @@ import {
   Check,
   BookOpen,
   Bell,
-  AlertTriangle
+  AlertTriangle,
+  Youtube
 } from 'lucide-react';
 import {
   SocietySettings,
@@ -377,7 +378,7 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
             <div className="w-12 h-12 rounded-full border border-white/30 bg-black flex items-center justify-center mx-auto mb-3">
               <Shield className="w-6 h-6 text-white" />
             </div>
-            <h1 className="font-display text-xl sm:text-2xl font-bold uppercase tracking-widest text-white">
+            <h1 className="font-chancery text-2xl sm:text-3xl font-bold tracking-wide text-white">
               {settings.memberPortalHeading || settings.heading || 'secretsociety_ind'}
             </h1>
             <p className="font-mono text-xs uppercase tracking-wider text-white/70">
@@ -467,8 +468,16 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
             </button>
           </form>
 
-          {onNavigateToCandidate && (
-            <div className="pt-3 border-t border-white/10 text-center">
+          <div className="pt-3 border-t border-white/10 flex flex-col items-center gap-2 text-center">
+            <a
+              href="#/videos"
+              className="font-mono text-xs text-white/60 hover:text-white transition-colors inline-flex items-center gap-1.5"
+            >
+              <Youtube className="w-3.5 h-3.5 text-red-500" />
+              Go to Member Video Archive (/#/videos)
+            </a>
+
+            {onNavigateToCandidate && (
               <button
                 type="button"
                 onClick={onNavigateToCandidate}
@@ -477,8 +486,8 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Switch to Candidate Examination View
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     );
@@ -499,24 +508,25 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
 
         return (
           <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-            <div className="w-full max-w-xl bg-black border-2 border-white/40 rounded-2xl shadow-[0_0_50px_rgba(255,255,255,0.15)] overflow-hidden flex flex-col my-auto">
+            {/* Glass Light Background Notification Box */}
+            <div className="w-full max-w-xl bg-white/90 backdrop-blur-2xl border border-white/80 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(255,255,255,0.25)] overflow-hidden flex flex-col my-auto">
               
               {/* Top Header of Notification Box */}
               <div
                 className={`p-4 sm:p-5 border-b flex items-start justify-between gap-3 ${
-                  isUrgent ? 'bg-red-950/40 border-red-500/50' : 'bg-white/5 border-white/20'
+                  isUrgent ? 'bg-red-500/10 border-red-500/30' : 'bg-white/60 border-black/10'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className={`p-2.5 rounded-xl border ${
+                    className={`p-2.5 rounded-xl border shadow-sm ${
                       isUrgent
-                        ? 'bg-red-500/20 border-red-500/50 text-red-300'
-                        : 'bg-white/10 border-white/30 text-white'
+                        ? 'bg-red-600 border-red-700 text-white'
+                        : 'bg-black text-white border-black'
                     }`}
                   >
                     {isUrgent ? (
-                      <AlertTriangle className="w-5 h-5 text-red-300" />
+                      <AlertTriangle className="w-5 h-5 text-white" />
                     ) : (
                       <Bell className="w-5 h-5 text-white" />
                     )}
@@ -526,19 +536,19 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
                       <span
                         className={`font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 rounded border font-bold ${
                           isUrgent
-                            ? 'bg-red-500/20 border-red-500 text-red-300'
-                            : 'bg-white/10 border-white/20 text-white/80'
+                            ? 'bg-red-600 border-red-700 text-white'
+                            : 'bg-black border-black text-white'
                         }`}
                       >
                         {isUrgent ? 'URGENT COUNCIL DIRECTIVE' : 'OFFICIAL COUNCIL NOTICE'}
                       </span>
                       {remainingCount > 1 && (
-                        <span className="font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-white/10 border border-white/15 text-white/70">
+                        <span className="font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-black/10 border border-black/15 text-neutral-800 font-semibold">
                           Directive 1 of {remainingCount}
                         </span>
                       )}
                     </div>
-                    <h2 className="font-display text-base sm:text-lg font-bold tracking-wide uppercase text-white mt-1">
+                    <h2 className="font-chancery text-lg sm:text-xl font-bold tracking-wide text-neutral-900 mt-1">
                       {currentNotice.title}
                     </h2>
                   </div>
@@ -546,15 +556,15 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
               </div>
 
               {/* Meta information */}
-              <div className="px-5 py-2.5 bg-white/[0.02] border-b border-white/10 flex items-center justify-between text-xs font-mono text-white/60">
+              <div className="px-5 py-2.5 bg-black/[0.04] border-b border-black/10 flex items-center justify-between text-xs font-mono text-neutral-600">
                 <div className="flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-white/40" />
+                  <User className="w-3.5 h-3.5 text-neutral-500" />
                   <span>
-                    Directed to: <strong className="text-white">{activeMember.alias}</strong>
+                    Directed to: <strong className="text-neutral-900">{activeMember.alias}</strong>
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-white/40" />
+                  <Clock className="w-3.5 h-3.5 text-neutral-500" />
                   <span>
                     {new Date(currentNotice.createdAt).toLocaleString(undefined, {
                       month: 'short',
@@ -569,14 +579,14 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
 
               {/* Written Notification Content Body */}
               <div className="p-5 sm:p-7 space-y-4 max-h-[50vh] overflow-y-auto">
-                <div className="font-mono text-xs sm:text-sm text-white/90 whitespace-pre-wrap leading-relaxed bg-white/5 border border-white/15 rounded-xl p-4 sm:p-5">
+                <div className="font-mono text-xs sm:text-sm text-neutral-900 whitespace-pre-wrap leading-relaxed bg-white/70 backdrop-blur-md border border-black/10 rounded-xl p-4 sm:p-5 shadow-sm">
                   {currentNotice.message}
                 </div>
               </div>
 
               {/* Notification Box Footer with "OK" Button DIRECTLY UNDER */}
-              <div className="p-4 sm:p-5 border-t border-white/20 bg-white/[0.03] flex flex-col sm:flex-row items-center justify-between gap-3">
-                <p className="font-editorial italic text-xs text-white/50 text-center sm:text-left">
+              <div className="p-4 sm:p-5 border-t border-black/10 bg-black/[0.02] flex flex-col sm:flex-row items-center justify-between gap-3">
+                <p className="font-editorial italic text-xs text-neutral-600 text-center sm:text-left">
                   Click OK to acknowledge. This notice will not show again once acknowledged.
                 </p>
 
@@ -584,16 +594,16 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
                   type="button"
                   disabled={isAcknowledgingNotice}
                   onClick={() => handleAcknowledgeNotification(currentNotice.id)}
-                  className="w-full sm:w-auto min-w-[140px] px-8 py-3 rounded-xl bg-white text-black hover:bg-neutral-200 active:scale-95 font-display text-xs sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+                  className="w-full sm:w-auto min-w-[140px] px-8 py-3 rounded-xl bg-black text-white hover:bg-neutral-800 active:scale-95 font-display text-xs sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-50"
                 >
                   {isAcknowledgingNotice ? (
                     <>
-                      <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       <span>Processing...</span>
                     </>
                   ) : (
                     <>
-                      <Check className="w-4 h-4 text-black" />
+                      <Check className="w-4 h-4 text-white" />
                       <span>OK</span>
                     </>
                   )}
@@ -612,7 +622,7 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
             <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border border-white/20 bg-white/10 text-white font-medium">
               Task System
             </span>
-            <h1 className="font-display text-base sm:text-lg font-bold uppercase tracking-wider text-white">
+            <h1 className="font-chancery text-lg sm:text-2xl font-bold tracking-wide text-white">
               {settings.memberPortalHeading || settings.heading || 'secretsociety_ind'}
             </h1>
           </div>
@@ -642,6 +652,15 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
           >
             <BookOpen className="w-3.5 h-3.5 text-white" />
             <span className="hidden sm:inline">Knowledge Base</span>
+          </a>
+
+          <a
+            href="#/videos"
+            className="px-3 py-1.5 rounded-lg border border-white/20 hover:border-white text-white font-mono text-xs transition-colors flex items-center gap-1.5 bg-white/5 hover:bg-white/10"
+            title="Access Video Collection"
+          >
+            <Youtube className="w-3.5 h-3.5 text-red-500" />
+            <span className="hidden sm:inline">Videos</span>
           </a>
 
           <button
@@ -744,7 +763,7 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
       {activeTab === 'forms' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-sm uppercase tracking-wider text-white/80 font-semibold">
+            <h2 className="font-chancery text-base sm:text-lg tracking-wide text-white/90 font-semibold">
               Available Task Forms ({filteredForms.length})
             </h2>
             <span className="font-mono text-[11px] text-white/50">
@@ -755,7 +774,7 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
           {filteredForms.length === 0 ? (
             <div className="bg-black border border-white/20 rounded-xl p-8 sm:p-12 text-center space-y-3">
               <FileText className="w-8 h-8 text-white/40 mx-auto" />
-              <h3 className="font-display text-base font-semibold uppercase tracking-wider text-white">
+              <h3 className="font-chancery text-lg font-semibold tracking-wide text-white">
                 No Matching Task Forms Found
               </h3>
               <p className="font-editorial italic text-xs sm:text-sm text-white/60 max-w-sm mx-auto">
@@ -786,7 +805,7 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
                         </span>
                       </div>
 
-                      <h3 className="font-display text-base font-bold uppercase tracking-wider text-white">
+                      <h3 className="font-chancery text-lg sm:text-xl font-bold tracking-wide text-white">
                         {form.title}
                       </h3>
 
@@ -859,7 +878,7 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
       {activeTab === 'submissions' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-display text-sm uppercase tracking-wider text-white/80 font-semibold">
+            <h2 className="font-chancery text-base sm:text-lg tracking-wide text-white/90 font-semibold">
               My Task Filings ({filteredSubmissions.length})
             </h2>
             <span className="font-mono text-[11px] text-white/50">
@@ -870,7 +889,7 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
           {filteredSubmissions.length === 0 ? (
             <div className="bg-black border border-white/20 rounded-xl p-8 sm:p-12 text-center space-y-3">
               <MessageSquare className="w-8 h-8 text-white/40 mx-auto" />
-              <h3 className="font-display text-base font-semibold uppercase tracking-wider text-white">
+              <h3 className="font-chancery text-lg font-semibold tracking-wide text-white">
                 No Filings Recorded
               </h3>
               <p className="font-editorial italic text-xs sm:text-sm text-white/60 max-w-sm mx-auto">
@@ -914,7 +933,7 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
                           </span>
                         </div>
 
-                        <h3 className="font-display text-base sm:text-lg font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                        <h3 className="font-chancery text-lg sm:text-xl font-bold tracking-wide text-white flex items-center gap-2">
                           <span className="text-white/60 font-normal">Purpose:</span>
                           <span className="text-white underline decoration-white/30 decoration-1 underline-offset-4">
                             {sub.purpose}
@@ -1128,7 +1147,7 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
                 <span className="font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded border border-white/20 text-white/60 mb-1 inline-block">
                   Task Form Filing
                 </span>
-                <h2 className="font-display text-lg sm:text-xl font-bold uppercase tracking-wider text-white">
+                <h2 className="font-chancery text-xl sm:text-2xl font-bold tracking-wide text-white">
                   {activeFillingForm.title}
                 </h2>
                 {activeFillingForm.description && (

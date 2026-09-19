@@ -27,7 +27,9 @@ import {
   Clock,
   BookOpen,
   Bell,
-  Send
+  Send,
+  Video,
+  Youtube
 } from 'lucide-react';
 import {
   Question,
@@ -59,6 +61,7 @@ import { AdminTaskFormsManager } from './AdminTaskFormsManager';
 import { AdminTaskSubmissionsViewer } from './AdminTaskSubmissionsViewer';
 import { AdminKnowledgeManager } from './AdminKnowledgeManager';
 import { AdminNotificationsManager } from './AdminNotificationsManager';
+import { AdminVideosManager } from './AdminVideosManager';
 
 interface AdminPortalProps {
   settings: SocietySettings;
@@ -84,7 +87,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   // Active tab in admin portal
   const [activeTab, setActiveTab] = useState<
-    'questions' | 'submissions' | 'task_forms' | 'task_submissions' | 'notifications' | 'knowledge' | 'member_intel' | 'members' | 'settings'
+    'questions' | 'submissions' | 'task_forms' | 'task_submissions' | 'notifications' | 'videos' | 'knowledge' | 'member_intel' | 'members' | 'settings'
   >('questions');
 
   // Preselected member for written notification dispatch
@@ -707,6 +710,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
         <button
           type="button"
+          onClick={() => setActiveTab('videos')}
+          className={`pb-3 px-3 sm:px-4 font-display text-[11px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.15em] transition-colors border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap ${
+            activeTab === 'videos'
+              ? 'border-white text-white font-bold'
+              : 'border-transparent text-white/60 hover:text-white'
+          }`}
+        >
+          <Youtube className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+          <span>Videos (/#/videos)</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('members')}
           className={`pb-3 px-3 sm:px-4 font-display text-[11px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.15em] transition-colors border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap ${
             activeTab === 'members'
@@ -1319,6 +1335,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
       {/* TAB: KNOWLEDGE BASE ARTICLES (/#/knowledge Full Text Editor & Media) */}
       {activeTab === 'knowledge' && <AdminKnowledgeManager />}
+
+      {/* TAB: VIDEO COLLECTION (/#/videos YouTube Video Links & Descriptions) */}
+      {activeTab === 'videos' && <AdminVideosManager />}
 
       {/* TAB 4: MEMBERS & PASSWORDS */}
       {activeTab === 'members' && (

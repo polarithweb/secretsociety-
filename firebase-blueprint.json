@@ -164,6 +164,24 @@
         "senderName": { "type": "string" }
       },
       "required": ["title", "message", "targetType", "createdAt"]
+    },
+    "council_videos": {
+      "title": "Council Video Archive",
+      "description": "Uploaded YouTube video links with description texts and categories for the member video collection portal (/#/videos)",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "youtubeUrl": { "type": "string" },
+        "youtubeVideoId": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "order": { "type": "number" },
+        "isPublished": { "type": "boolean" },
+        "uploadedByAlias": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["title", "youtubeUrl", "youtubeVideoId", "description", "createdAt"]
     }
   }
 }

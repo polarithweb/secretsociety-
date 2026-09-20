@@ -182,29 +182,6 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
               {settings.heading || 'secretsociety_ind'}
             </span>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (onNavigateToInfo) onNavigateToInfo();
-                else window.location.hash = '#/info';
-              }}
-              className="font-mono text-xs text-white/60 hover:text-white px-2.5 py-1 rounded border border-white/20 transition-colors"
-            >
-              Info Portal (/#/info)
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (onNavigateToCandidate) onNavigateToCandidate();
-                else window.location.hash = '#/';
-              }}
-              className="font-mono text-xs text-white/60 hover:text-white px-2.5 py-1 rounded border border-white/20 transition-colors"
-            >
-              Candidate View
-            </button>
-          </div>
         </div>
 
         {/* Login Box */}
@@ -346,35 +323,9 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
             </div>
           </div>
 
-          {/* Module Links & Member Profile */}
-          <div className="flex items-center flex-wrap gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  if (onNavigateToInfo) onNavigateToInfo();
-                  else window.location.hash = '#/info';
-                }}
-                className="px-2.5 py-1 rounded-lg border border-white/20 hover:border-white text-white/70 hover:text-white font-mono text-xs transition-colors"
-                title="Switch to Member Info & Task Portal"
-              >
-                Tasks & Forms (/#/info)
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (onNavigateToCandidate) onNavigateToCandidate();
-                  else window.location.hash = '#/';
-                }}
-                className="px-2.5 py-1 rounded-lg border border-white/20 hover:border-white text-white/70 hover:text-white font-mono text-xs transition-colors"
-                title="Switch to Candidate Entrance"
-              >
-                Candidate View
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2 pl-2 border-l border-white/20">
+          {/* Member Profile and Logout */}
+          <div className="flex items-center flex-wrap gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+            <div className="flex items-center gap-2">
               <div className="text-right hidden sm:block">
                 <div className="font-mono text-xs text-white font-bold">
                   {activeMember.alias}

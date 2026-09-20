@@ -167,9 +167,14 @@ export const AdminVideosManager: React.FC<AdminVideosManagerProps> = ({ onRefres
   // Handle delete video
   const handleConfirmDelete = async () => {
     if (!deletingVideo) return;
+    const targetId = deletingVideo.id;
     setIsDeleting(true);
     try {
-      await deleteCouncilVideo(deletingVideo.id);
+      await deleteCouncilVideo(targetId);
+      setVideos((prev) => prev.filter((v) => v.id !== targetId));
+      if (previewVideo?.id === targetId) {
+        setPreviewVideo(null);
+      }
       setDeletingVideo(null);
       if (onRefreshData) onRefreshData();
     } catch (err) {

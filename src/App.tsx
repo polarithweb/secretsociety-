@@ -202,29 +202,14 @@ export default function App() {
           ) : currentRoute === 'info' ? (
             <MemberInfoPortal
               settings={settings}
-              onNavigateToCandidate={handleNavigateToCandidate}
             />
           ) : currentRoute === 'knowledge' ? (
             <KnowledgePortal
               settings={settings}
-              onNavigateToCandidate={handleNavigateToCandidate}
-              onNavigateToInfo={() => {
-                window.location.hash = '#/info';
-                setCurrentRoute('info');
-              }}
             />
           ) : currentRoute === 'videos' ? (
             <CouncilVideosPortal
               settings={settings}
-              onNavigateToCandidate={handleNavigateToCandidate}
-              onNavigateToInfo={() => {
-                window.location.hash = '#/info';
-                setCurrentRoute('info');
-              }}
-              onNavigateToKnowledge={() => {
-                window.location.hash = '#/knowledge';
-                setCurrentRoute('knowledge');
-              }}
             />
           ) : (
             <CandidateForm

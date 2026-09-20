@@ -467,27 +467,6 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
               )}
             </button>
           </form>
-
-          <div className="pt-3 border-t border-white/10 flex flex-col items-center gap-2 text-center">
-            <a
-              href="#/videos"
-              className="font-mono text-xs text-white/60 hover:text-white transition-colors inline-flex items-center gap-1.5"
-            >
-              <Youtube className="w-3.5 h-3.5 text-red-500" />
-              Go to Member Video Archive (/#/videos)
-            </a>
-
-            {onNavigateToCandidate && (
-              <button
-                type="button"
-                onClick={onNavigateToCandidate}
-                className="font-mono text-xs text-white/50 hover:text-white transition-colors inline-flex items-center gap-1.5"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Switch to Candidate Examination View
-              </button>
-            )}
-          </div>
         </div>
       </div>
     );
@@ -644,24 +623,6 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
               </div>
             )}
           </div>
-
-          <a
-            href="#/knowledge"
-            className="px-3 py-1.5 rounded-lg border border-white/20 hover:border-white text-white font-mono text-xs transition-colors flex items-center gap-1.5 bg-white/5 hover:bg-white/10"
-            title="Access Knowledge Portal"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-white" />
-            <span className="hidden sm:inline">Knowledge Base</span>
-          </a>
-
-          <a
-            href="#/videos"
-            className="px-3 py-1.5 rounded-lg border border-white/20 hover:border-white text-white font-mono text-xs transition-colors flex items-center gap-1.5 bg-white/5 hover:bg-white/10"
-            title="Access Video Collection"
-          >
-            <Youtube className="w-3.5 h-3.5 text-red-500" />
-            <span className="hidden sm:inline">Videos</span>
-          </a>
 
           <button
             id="memberLogoutBtn"

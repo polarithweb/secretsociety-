@@ -12,17 +12,14 @@ import {
   Share2,
   Check,
   Youtube,
-  RefreshCw,
-  Trash2,
-  AlertTriangle
+  RefreshCw
 } from 'lucide-react';
 import { CouncilVideo, MemberAccount, SocietySettings } from '../types';
 import {
   getCouncilVideos,
   subscribeToCouncilVideos,
   authenticateMember,
-  getYouTubeThumbnail,
-  deleteCouncilVideo
+  getYouTubeThumbnail
 } from '../lib/firebase';
 
 interface CouncilVideosPortalProps {
@@ -62,26 +59,6 @@ export const CouncilVideosPortal: React.FC<CouncilVideosPortalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedVideo, setSelectedVideo] = useState<CouncilVideo | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [deletingVideo, setDeletingVideo] = useState<CouncilVideo | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  // Permanently delete video from portal
-  const handleConfirmDelete = async () => {
-    if (!deletingVideo) return;
-    setIsDeleting(true);
-    try {
-      await deleteCouncilVideo(deletingVideo.id);
-      setVideos((prev) => prev.filter((v) => v.id !== deletingVideo.id));
-      if (selectedVideo?.id === deletingVideo.id) {
-        setSelectedVideo(null);
-      }
-      setDeletingVideo(null);
-    } catch (err) {
-      console.error('Failed to delete video:', err);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
   // Load and subscribe to council videos
   useEffect(() => {
@@ -458,24 +435,14 @@ export const CouncilVideosPortal: React.FC<CouncilVideosPortalProps> = ({
                     </a>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedVideo(video)}
-                      className="flex-1 py-2.5 rounded-xl bg-white text-black hover:bg-neutral-200 active:scale-95 font-mono text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-black text-black" />
-                      <span>Watch Video</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeletingVideo(video)}
-                      className="p-2.5 rounded-xl border border-white/20 hover:border-red-500/50 hover:bg-red-500/10 text-white/50 hover:text-red-400 transition-colors"
-                      title="Delete video permanently"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedVideo(video)}
+                    className="w-full py-2.5 rounded-xl bg-white text-black hover:bg-neutral-200 active:scale-95 font-mono text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-md"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-black text-black" />
+                    <span>Watch Video</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -535,16 +502,6 @@ export const CouncilVideosPortal: React.FC<CouncilVideosPortalProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setDeletingVideo(selectedVideo)}
-                    className="px-3 py-1.5 rounded-lg border border-red-500/30 hover:border-red-500 hover:bg-red-500/10 text-red-400 font-mono text-xs uppercase tracking-wider transition-colors inline-flex items-center gap-1.5"
-                    title="Delete this video permanently"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => handleCopyLink(selectedVideo.youtubeUrl)}
                     className="px-3 py-1.5 rounded-lg border border-white/20 hover:bg-white/10 text-white font-mono text-xs uppercase tracking-wider transition-colors inline-flex items-center gap-1.5"
                   >
@@ -593,57 +550,6 @@ export const CouncilVideosPortal: React.FC<CouncilVideosPortalProps> = ({
                   Close Theater View
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deletingVideo && (
-        <div className="fixed inset-0 z-[120] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-md bg-neutral-950 border border-white/25 rounded-2xl p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center gap-3 text-red-400">
-              <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="font-chancery text-lg font-bold text-white">Delete Video</h3>
-                <p className="font-mono text-[11px] text-white/60">Permanent Purge Confirmation</p>
-              </div>
-            </div>
-
-            <p className="font-mono text-xs text-white/80 leading-relaxed">
-              Are you sure you want to permanently delete{' '}
-              <strong className="text-white">"{deletingVideo.title}"</strong>? This will remove the video immediately from the collection and cannot be undone.
-            </p>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={() => setDeletingVideo(null)}
-                className="px-4 py-2 rounded-xl border border-white/20 hover:bg-white/10 text-white font-mono text-xs uppercase tracking-wider transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={handleConfirmDelete}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-2 disabled:opacity-50 shadow-lg"
-              >
-                {isDeleting ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Deleting...</span>
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete Permanently</span>
-                  </>
-                )}
-              </button>
             </div>
           </div>
         </div>

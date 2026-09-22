@@ -218,46 +218,61 @@ export const AdminKnowledgeManager: React.FC = () => {
     }
   };
 
-  // Process image file to base64 with canvas resizing
+  // Process image file to base64 with canvas resizing (< 100KB safe)
   const processImageFile = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
-          let width = img.width;
-          let height = img.height;
+        const rawResult = e.target?.result;
+        if (typeof rawResult !== 'string') {
+          resolve('');
+          return;
+        }
 
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height = Math.round((height * MAX_WIDTH) / width);
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width = Math.round((width * MAX_HEIGHT) / height);
-              height = MAX_HEIGHT;
-            }
-          }
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 900;
+              const MAX_HEIGHT = 900;
+              let width = img.naturalWidth || img.width;
+              let height = img.naturalHeight || img.height;
 
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            reject(new Error('Canvas rendering context unavailable'));
-            return;
-          }
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressed = canvas.toDataURL('image/jpeg', 0.85);
-          resolve(compressed);
-        };
-        img.onerror = () => reject(new Error('Invalid image file'));
-        img.src = e.target?.result as string;
+              if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                if (width > height) {
+                  height = Math.round((height * MAX_WIDTH) / width);
+                  width = MAX_WIDTH;
+                } else {
+                  width = Math.round((width * MAX_HEIGHT) / height);
+                  height = MAX_HEIGHT;
+                }
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) {
+                resolve(rawResult);
+                return;
+              }
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressed = canvas.toDataURL('image/jpeg', 0.78);
+              resolve(compressed);
+            } catch {
+              resolve(rawResult);
+            }
+          };
+          img.onerror = () => resolve(rawResult);
+          img.src = rawResult;
+        } catch {
+          resolve(rawResult);
+        }
       };
-      reader.onerror = () => reject(new Error('Failed to read image file'));
+      reader.onerror = () => resolve('');
       reader.readAsDataURL(file);
     });
   };
@@ -269,9 +284,11 @@ export const AdminKnowledgeManager: React.FC = () => {
     setIsUploadingCover(true);
     try {
       const base64 = await processImageFile(file);
-      setCurrentArticle((prev) => ({ ...prev, coverImage: base64 }));
+      if (base64) {
+        setCurrentArticle((prev) => ({ ...prev, coverImage: base64 }));
+      }
     } catch (err: any) {
-      alert(err.message || 'Image upload failed');
+      setErrorMessage(err.message || 'Image upload failed');
     } finally {
       setIsUploadingCover(false);
       if (coverFileInputRef.current) coverFileInputRef.current.value = '';

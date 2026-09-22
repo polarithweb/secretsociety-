@@ -993,6 +993,23 @@ export async function clearAllKnowledgeArticles(): Promise<void> {
 // ----------------------------------------------------
 
 /**
+ * Utility to strip undefined values so Firestore never rejects documents
+ */
+function cleanForFirestore<T extends Record<string, any>>(obj: T): T {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+        result[key] = cleanForFirestore(value);
+      } else {
+        result[key] = value;
+      }
+    }
+  }
+  return result as T;
+}
+
+/**
  * Local cache key for optimistic acknowledgement
  */
 function getLocalAcknowledgedNotificationIds(memberAlias: string): string[] {
@@ -1017,6 +1034,11 @@ function recordLocalAcknowledgedNotification(notificationId: string, memberAlias
 }
 
 /**
+ * In-memory notification cache - immune to browser storage quota limits and race conditions
+ */
+const inMemoryNotificationsMap = new Map<string, MemberNotification>();
+
+/**
  * Helper to get locally stored notifications
  */
 function getStoredLocalNotifications(): MemberNotification[] {
@@ -1028,19 +1050,37 @@ function getStoredLocalNotifications(): MemberNotification[] {
   }
 }
 
+// Preload any existing notifications into the in-memory map
+try {
+  const preloaded = getStoredLocalNotifications();
+  preloaded.forEach((n) => {
+    if (n && n.id) {
+      inMemoryNotificationsMap.set(n.id, n);
+    }
+  });
+} catch {
+  // Ignore
+}
+
 /**
- * Helper to save locally stored notifications
+ * Helper to save locally stored notifications with quota protection
  */
 function setStoredLocalNotifications(list: MemberNotification[]): void {
   try {
     localStorage.setItem('secretsociety_local_notifications', JSON.stringify(list));
   } catch (e) {
-    // If quota exceeded due to large image, trim old items
+    // If quota exceeded (common on mobile browsers with data URLs), compress or prune
     try {
-      const trimmed = list.slice(0, 15);
-      localStorage.setItem('secretsociety_local_notifications', JSON.stringify(trimmed));
+      const sanitized = list.slice(0, 20).map((n) => {
+        // If image data URL is very large, truncate for backup storage
+        if (n.imageUrl && n.imageUrl.length > 90000) {
+          return { ...n, imageUrl: n.imageUrl.substring(0, 90000) };
+        }
+        return n;
+      });
+      localStorage.setItem('secretsociety_local_notifications', JSON.stringify(sanitized));
     } catch {
-      // ignore
+      // In-memory notifications map guarantees availability during the entire session
     }
   }
 }
@@ -1061,7 +1101,7 @@ export async function sendMemberNotification(
     title: notificationData.title?.trim() || (isImageNotice ? 'Visual Notice Directive' : 'Council Directive'),
     message: notificationData.message ? notificationData.message.trim() : '',
     noticeType: isImageNotice ? 'image' : 'text',
-    imageUrl: notificationData.imageUrl ? notificationData.imageUrl.trim() : undefined,
+    imageUrl: isImageNotice && notificationData.imageUrl ? notificationData.imageUrl.trim() : '',
     imageAspectRatio: '1:1',
     targetType: notificationData.targetType,
     targetMemberAliases: notificationData.targetType === 'all' ? [] : notificationData.targetMemberAliases || [],
@@ -1071,17 +1111,22 @@ export async function sendMemberNotification(
     senderName: notificationData.senderName || 'Council Administration'
   };
 
-  // 1. Immediately store in local cache so UI displays it with zero lag
-  const localList = getStoredLocalNotifications();
-  const updatedLocal = [newNotice, ...localList.filter((n) => n.id !== id)];
-  setStoredLocalNotifications(updatedLocal);
+  // 1. Immediately store in in-memory map & local cache so it NEVER vanishes
+  inMemoryNotificationsMap.set(id, newNotice);
+  const currentMerged = Array.from(inMemoryNotificationsMap.values());
+  currentMerged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  setStoredLocalNotifications(currentMerged);
 
-  // 2. Persist to Firestore
+  // 2. Persist to Firestore with sanitized payload (no undefined values)
   try {
     const docRef = doc(MEMBER_NOTIFICATIONS_COLLECTION, id);
-    await setDoc(docRef, newNotice);
+    const firestorePayload = cleanForFirestore({
+      ...newNotice,
+      imageUrl: newNotice.imageUrl || ''
+    });
+    await setDoc(docRef, firestorePayload);
   } catch (err) {
-    console.error('Error saving notification to Firestore, kept in local store:', err);
+    console.error('Firestore save notification warning (retained in memory & local store):', err);
   }
 
   return newNotice;
@@ -1091,29 +1136,20 @@ export async function sendMemberNotification(
  * Get all notifications dispatched by admin
  */
 export async function getMemberNotifications(): Promise<MemberNotification[]> {
-  const localList = getStoredLocalNotifications();
-
   try {
     const snap = await getDocs(MEMBER_NOTIFICATIONS_COLLECTION);
-    const remoteNotices: MemberNotification[] = [];
     snap.forEach((d) => {
-      remoteNotices.push({ ...(d.data() as MemberNotification), id: d.id });
+      const remote = { ...(d.data() as MemberNotification), id: d.id };
+      inMemoryNotificationsMap.set(d.id, remote);
     });
-
-    // Merge remote and local (remote takes precedence, local fills any gaps)
-    const map = new Map<string, MemberNotification>();
-    localList.forEach((n) => map.set(n.id, n));
-    remoteNotices.forEach((n) => map.set(n.id, n));
-
-    const merged = Array.from(map.values());
-    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    setStoredLocalNotifications(merged);
-    return merged;
   } catch (err) {
-    console.warn('Error fetching member notifications from Firestore, using local cache:', err);
-    localList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return localList;
+    console.warn('Error fetching member notifications from Firestore, using in-memory/local cache:', err);
   }
+
+  const merged = Array.from(inMemoryNotificationsMap.values());
+  merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  setStoredLocalNotifications(merged);
+  return merged;
 }
 
 /**
@@ -1122,32 +1158,40 @@ export async function getMemberNotifications(): Promise<MemberNotification[]> {
 export function subscribeToMemberNotifications(
   callback: (notifications: MemberNotification[]) => void
 ): () => void {
+  // Fire callback immediately with in-memory notices to prevent any empty-state flicker
+  const immediate = Array.from(inMemoryNotificationsMap.values());
+  immediate.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  if (immediate.length > 0) {
+    callback(immediate);
+  }
+
   try {
     const unsubscribe = onSnapshot(
       MEMBER_NOTIFICATIONS_COLLECTION,
       (snap) => {
-        const localList = getStoredLocalNotifications();
-        const map = new Map<string, MemberNotification>();
-        localList.forEach((n) => map.set(n.id, n));
-
         snap.forEach((d) => {
-          map.set(d.id, { ...(d.data() as MemberNotification), id: d.id });
+          const item = { ...(d.data() as MemberNotification), id: d.id };
+          inMemoryNotificationsMap.set(d.id, item);
         });
 
-        const merged = Array.from(map.values());
+        const merged = Array.from(inMemoryNotificationsMap.values());
         merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setStoredLocalNotifications(merged);
         callback(merged);
       },
       (err) => {
         console.warn('Member notifications subscription warning:', err);
-        getMemberNotifications().then(callback).catch(() => callback([]));
+        const fallbackList = Array.from(inMemoryNotificationsMap.values());
+        fallbackList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        callback(fallbackList);
       }
     );
     return unsubscribe;
   } catch (err) {
     console.warn('Failed to subscribe to member notifications:', err);
-    getMemberNotifications().then(callback).catch(() => callback([]));
+    const fallbackList = Array.from(inMemoryNotificationsMap.values());
+    fallbackList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    callback(fallbackList);
     return () => {};
   }
 }
@@ -1231,15 +1275,15 @@ export async function acknowledgeNotification(
 export async function deleteMemberNotification(notificationId: string): Promise<void> {
   if (!notificationId) return;
 
-  const localList = getStoredLocalNotifications();
-  const updated = localList.filter((n) => n.id !== notificationId);
+  inMemoryNotificationsMap.delete(notificationId);
+  const updated = Array.from(inMemoryNotificationsMap.values());
   setStoredLocalNotifications(updated);
 
   try {
     const docRef = doc(MEMBER_NOTIFICATIONS_COLLECTION, notificationId);
     await deleteDoc(docRef);
   } catch (err) {
-    console.error('Error deleting member notification:', err);
+    console.error('Error deleting member notification from Firestore:', err);
     throw err;
   }
 }

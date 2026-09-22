@@ -102,6 +102,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // Member Accounts State
   const [members, setMembers] = useState<MemberAccount[]>([]);
   const [isEditingMember, setIsEditingMember] = useState(false);
+  const [memberModalError, setMemberModalError] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<MemberAccount>({
     id: '',
     alias: '',
@@ -310,6 +311,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   // Member Management Handlers
   const handleOpenNewMember = () => {
+    setMemberModalError(null);
     setEditingMember({
       id: `mem_${Date.now()}`,
       alias: '',
@@ -323,14 +325,16 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   };
 
   const handleEditMember = (m: MemberAccount) => {
+    setMemberModalError(null);
     setEditingMember({ ...m });
     setIsEditingMember(true);
   };
 
   const handleSaveMember = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMemberModalError(null);
     if (!editingMember.alias.trim() || !editingMember.password.trim()) {
-      alert('Alias and password are both mandatory.');
+      setMemberModalError('Alias and password are both mandatory.');
       return;
     }
 
@@ -342,9 +346,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       setIsEditingMember(false);
       const updated = await getMemberAccounts();
       setMembers(updated);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to save member:', err);
-      alert('Error saving member account.');
+      setMemberModalError(err?.message || 'Error saving member account.');
     }
   };
 
@@ -366,7 +370,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     }));
   };
 
-  // File Upload Handlers
+  // File Upload Handlers with Automatic Canvas Optimization
   const handleBgFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -374,11 +378,60 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setIsUploadingBg(true);
     const reader = new FileReader();
     reader.onload = (uploadEvent) => {
-      const result = uploadEvent.target?.result;
-      if (typeof result === 'string') {
-        setBackgroundImage(result);
+      const rawResult = uploadEvent.target?.result;
+      if (typeof rawResult !== 'string') {
+        setIsUploadingBg(false);
+        return;
       }
-      setIsUploadingBg(false);
+
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 1600;
+            const MAX_HEIGHT = 1200;
+            let width = img.naturalWidth || img.width;
+            let height = img.naturalHeight || img.height;
+
+            if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+              if (width > height) {
+                height = Math.round((height * MAX_WIDTH) / width);
+                width = MAX_WIDTH;
+              } else {
+                width = Math.round((width * MAX_HEIGHT) / height);
+                height = MAX_HEIGHT;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressed = canvas.toDataURL('image/jpeg', 0.80);
+              setBackgroundImage(compressed);
+            } else {
+              setBackgroundImage(rawResult);
+            }
+          } catch {
+            setBackgroundImage(rawResult);
+          } finally {
+            setIsUploadingBg(false);
+          }
+        };
+        img.onerror = () => {
+          setBackgroundImage(rawResult);
+          setIsUploadingBg(false);
+        };
+        img.src = rawResult;
+      } catch {
+        setBackgroundImage(rawResult);
+        setIsUploadingBg(false);
+      }
     };
     reader.onerror = () => {
       setIsUploadingBg(false);
@@ -393,11 +446,59 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setIsUploadingSigil(true);
     const reader = new FileReader();
     reader.onload = (uploadEvent) => {
-      const result = uploadEvent.target?.result;
-      if (typeof result === 'string') {
-        setSigilImage(result);
+      const rawResult = uploadEvent.target?.result;
+      if (typeof rawResult !== 'string') {
+        setIsUploadingSigil(false);
+        return;
       }
-      setIsUploadingSigil(false);
+
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const TARGET_SIZE = 400;
+            let width = img.naturalWidth || img.width;
+            let height = img.naturalHeight || img.height;
+
+            if (width > TARGET_SIZE || height > TARGET_SIZE) {
+              if (width > height) {
+                height = Math.round((height * TARGET_SIZE) / width);
+                width = TARGET_SIZE;
+              } else {
+                width = Math.round((width * TARGET_SIZE) / height);
+                height = TARGET_SIZE;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressed = canvas.toDataURL('image/png');
+              setSigilImage(compressed);
+            } else {
+              setSigilImage(rawResult);
+            }
+          } catch {
+            setSigilImage(rawResult);
+          } finally {
+            setIsUploadingSigil(false);
+          }
+        };
+        img.onerror = () => {
+          setSigilImage(rawResult);
+          setIsUploadingSigil(false);
+        };
+        img.src = rawResult;
+      } catch {
+        setSigilImage(rawResult);
+        setIsUploadingSigil(false);
+      }
     };
     reader.onerror = () => {
       setIsUploadingSigil(false);
@@ -1953,6 +2054,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </div>
 
             <form onSubmit={handleSaveMember} className="space-y-4">
+              {memberModalError && (
+                <div className="p-3 rounded-lg bg-red-950/50 border border-red-500/40 text-red-200 text-xs font-mono">
+                  {memberModalError}
+                </div>
+              )}
               <div>
                 <label className="block font-mono text-xs font-semibold text-white/85 uppercase tracking-wider mb-1">
                   Member Alias <span className="text-white">*</span>

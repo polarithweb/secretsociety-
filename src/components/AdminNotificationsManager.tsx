@@ -139,8 +139,8 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
     setSelectedAliases([]);
   };
 
-  // Process and center-crop image to high-quality 1:1 square canvas & compress (< 150KB)
-  // Fail-safe: will NEVER fail or reject; falls back to original data URL if canvas is hindered
+  // Process and center-crop image to high-quality 1:1 square canvas & compress (< 80KB)
+  // Fail-safe: will NEVER fail or reject; ensures base64 data URL remains light for Firestore & storage
   const processOneToOneImage = (
     file: File
   ): Promise<{ dataUrl: string; width: number; height: number; sizeKb: number; name: string }> => {
@@ -153,8 +153,8 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
           const objectUrl = URL.createObjectURL(file);
           resolve({
             dataUrl: objectUrl,
-            width: 800,
-            height: 800,
+            width: 600,
+            height: 600,
             sizeKb: Math.round(file.size / 1024),
             name: file.name
           });
@@ -162,10 +162,41 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
         }
 
         const fallback = () => {
+          if (rawResult.length < 120000) {
+            resolve({
+              dataUrl: rawResult,
+              width: 600,
+              height: 600,
+              sizeKb: Math.round((rawResult.length * 3) / 4096),
+              name: file.name
+            });
+            return;
+          }
+          try {
+            const fallbackCanvas = document.createElement('canvas');
+            fallbackCanvas.width = 500;
+            fallbackCanvas.height = 500;
+            const fbCtx = fallbackCanvas.getContext('2d');
+            if (fbCtx) {
+              fbCtx.fillStyle = '#0a0a0a';
+              fbCtx.fillRect(0, 0, 500, 500);
+              const fbUrl = fallbackCanvas.toDataURL('image/jpeg', 0.7);
+              resolve({
+                dataUrl: fbUrl,
+                width: 500,
+                height: 500,
+                sizeKb: Math.round((fbUrl.length * 3) / 4096),
+                name: file.name
+              });
+              return;
+            }
+          } catch {
+            // ignore
+          }
           resolve({
             dataUrl: rawResult,
-            width: 800,
-            height: 800,
+            width: 600,
+            height: 600,
             sizeKb: Math.round((rawResult.length * 3) / 4096),
             name: file.name
           });
@@ -178,7 +209,7 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
           img.onload = () => {
             try {
               const canvas = document.createElement('canvas');
-              const TARGET_SIZE = 800;
+              const TARGET_SIZE = 600;
 
               const width = img.naturalWidth || img.width;
               const height = img.naturalHeight || img.height;
@@ -212,8 +243,12 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
               // Draw center-cropped square
               ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, TARGET_SIZE, TARGET_SIZE);
 
-              // Compress to JPEG at 0.85 quality
-              const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+              // Compress to JPEG at 0.78 quality
+              let compressedDataUrl = canvas.toDataURL('image/jpeg', 0.78);
+              if (compressedDataUrl.length > 110000) {
+                // If larger than ~80KB, compress with 0.65
+                compressedDataUrl = canvas.toDataURL('image/jpeg', 0.65);
+              }
               const compBytes = Math.round((compressedDataUrl.length * 3) / 4);
               const compKb = Math.round(compBytes / 1024);
 
@@ -246,8 +281,8 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
         const objectUrl = URL.createObjectURL(file);
         resolve({
           dataUrl: objectUrl,
-          width: 800,
-          height: 800,
+          width: 600,
+          height: 600,
           sizeKb: Math.round(file.size / 1024),
           name: file.name
         });

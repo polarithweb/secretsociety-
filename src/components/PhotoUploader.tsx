@@ -41,8 +41,8 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           img.onload = () => {
             try {
               const canvas = document.createElement('canvas');
-              const MAX_WIDTH = 900;
-              const MAX_HEIGHT = 900;
+              const MAX_WIDTH = 700;
+              const MAX_HEIGHT = 700;
               let width = img.naturalWidth || img.width;
               let height = img.naturalHeight || img.height;
 
@@ -53,12 +53,12 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
               if (width > height) {
                 if (width > MAX_WIDTH) {
-                  height *= MAX_WIDTH / width;
+                  height = Math.round((height * MAX_WIDTH) / width);
                   width = MAX_WIDTH;
                 }
               } else {
                 if (height > MAX_HEIGHT) {
-                  width *= MAX_HEIGHT / height;
+                  width = Math.round((width * MAX_HEIGHT) / height);
                   height = MAX_HEIGHT;
                 }
               }
@@ -70,8 +70,10 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
                 resolve(rawResult);
                 return;
               }
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
               ctx.drawImage(img, 0, 0, width, height);
-              const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+              const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.78);
               resolve(compressedDataUrl);
             } catch {
               resolve(rawResult);

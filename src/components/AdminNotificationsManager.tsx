@@ -51,6 +51,8 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
   const [message, setMessage] = useState('');
   const [noticeType, setNoticeType] = useState<'text' | 'image'>('text');
   const [imageUrl, setImageUrl] = useState('');
+  const [imageMeta, setImageMeta] = useState<{ width: number; height: number; sizeKb: number; name: string } | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [imageInputMethod, setImageInputMethod] = useState<'upload' | 'url'>('upload');
   const [isDragOver, setIsDragOver] = useState(false);
   const [lightboxNotice, setLightboxNotice] = useState<MemberNotification | null>(null);
@@ -136,23 +138,110 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
     setSelectedAliases([]);
   };
 
-  // Handle image file selection
-  const handleImageFile = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      setErrorMessage('Please select a valid image file (PNG, JPG, WebP, GIF, or SVG).');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setImageUrl(reader.result);
+  // Process and center-crop image to high-quality 1:1 square canvas & compress (< 150KB)
+  const processOneToOneImage = (
+    file: File
+  ): Promise<{ dataUrl: string; width: number; height: number; sizeKb: number; name: string }> => {
+    return new Promise((resolve, reject) => {
+      if (!file.type.startsWith('image/')) {
+        reject(new Error('Please select a valid image file (PNG, JPG, WebP, GIF, or SVG).'));
+        return;
       }
-    };
-    reader.onerror = () => {
-      setErrorMessage('Failed to read selected image file.');
-    };
-    reader.readAsDataURL(file);
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const rawResult = event.target?.result;
+        if (typeof rawResult !== 'string') {
+          reject(new Error('Failed to read image data from selected file.'));
+          return;
+        }
+
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            // Optimal 800x800 for high resolution yet fast and lightweight (<100KB) Firestore storage
+            const TARGET_SIZE = 800;
+
+            // Compute square center-crop coordinates
+            const minSide = Math.min(img.width, img.height);
+            const sx = (img.width - minSide) / 2;
+            const sy = (img.height - minSide) / 2;
+
+            canvas.width = TARGET_SIZE;
+            canvas.height = TARGET_SIZE;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              reject(new Error('Canvas context not available for 1:1 image optimization.'));
+              return;
+            }
+
+            // High-quality image smoothing
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            // Neutral dark background in case of transparent PNG/SVG
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, TARGET_SIZE, TARGET_SIZE);
+
+            // Draw center-cropped square
+            ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, TARGET_SIZE, TARGET_SIZE);
+
+            // Compress to JPEG at 0.85 quality (~40KB - 85KB, safe for Firestore 1MB limit)
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            const sizeInBytes = Math.round((compressedDataUrl.length * 3) / 4);
+            const sizeKb = Math.round(sizeInBytes / 1024);
+
+            resolve({
+              dataUrl: compressedDataUrl,
+              width: TARGET_SIZE,
+              height: TARGET_SIZE,
+              sizeKb,
+              name: file.name
+            });
+          } catch (err: any) {
+            reject(new Error(err?.message || 'Error processing image to 1:1 square.'));
+          }
+        };
+
+        img.onerror = () => {
+          reject(new Error('Selected image file is corrupted or could not be decoded.'));
+        };
+
+        img.src = rawResult;
+      };
+
+      reader.onerror = () => {
+        reject(new Error('Failed to read image file from disk.'));
+      };
+
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Handle image file selection
+  const handleImageFile = async (file: File) => {
+    setErrorMessage(null);
+    setIsProcessingImage(true);
+    try {
+      const result = await processOneToOneImage(file);
+      setImageUrl(result.dataUrl);
+      setImageMeta({
+        width: result.width,
+        height: result.height,
+        sizeKb: result.sizeKb,
+        name: result.name
+      });
+    } catch (err: any) {
+      console.error('Error processing 1:1 image:', err);
+      setErrorMessage(err.message || 'Failed to process image.');
+    } finally {
+      setIsProcessingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,12 +251,27 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
     }
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: React.DragEvent<HTMLElement>) => {
     e.preventDefault();
     setIsDragOver(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {
       handleImageFile(file);
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    if (noticeType !== 'image') return;
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleImageFile(file);
+          break;
+        }
+      }
     }
   };
 
@@ -224,6 +328,7 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
       setTitle('');
       setMessage('');
       setImageUrl('');
+      setImageMeta(null);
       setNoticeType('text');
       setUrgency('standard');
       setTargetType('all');
@@ -576,7 +681,10 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
 
             {/* 1:1 Image Section (When Image Notice is selected) */}
             {noticeType === 'image' && (
-              <div className="space-y-4 p-4 rounded-xl border border-white/20 bg-black/80">
+              <div
+                onPaste={handlePaste}
+                className="space-y-4 p-4 rounded-xl border border-white/20 bg-black/80"
+              >
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
                   <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-white">
                     <ImageIcon className="w-4 h-4 text-white" />
@@ -613,34 +721,62 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
                 </div>
 
                 {imageInputMethod === 'upload' ? (
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setIsDragOver(true);
-                    }}
-                    onDragLeave={() => setIsDragOver(false)}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
-                      isDragOver
-                        ? 'border-white bg-white/15'
-                        : 'border-white/20 hover:border-white/40 bg-white/5'
-                    }`}
-                  >
+                  <div>
+                    {/* Native Hidden File Input */}
                     <input
+                      id="admin-notice-file-input"
                       ref={fileInputRef}
                       type="file"
                       accept="image/*"
                       onChange={handleFileInputChange}
-                      className="hidden"
+                      className="sr-only"
                     />
-                    <UploadCloud className="w-8 h-8 mx-auto text-white/50 mb-2" />
-                    <p className="font-mono text-xs text-white">
-                      Click to choose or drag & drop 1:1 image file
-                    </p>
-                    <p className="font-editorial italic text-[11px] text-white/40 mt-1">
-                      Supports PNG, JPG, WebP, GIF, SVG (renders in 1:1 square ratio)
-                    </p>
+
+                    {/* Native Accessible Drag/Drop Label Dropzone */}
+                    <label
+                      htmlFor="admin-notice-file-input"
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDragOver(true);
+                      }}
+                      onDragLeave={() => setIsDragOver(false)}
+                      onDrop={handleDrop}
+                      className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all select-none ${
+                        isDragOver
+                          ? 'border-white bg-white/15'
+                          : 'border-white/25 hover:border-white/50 bg-white/5 hover:bg-white/10'
+                      } ${isProcessingImage ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
+                      {isProcessingImage ? (
+                        <div className="flex flex-col items-center gap-2 py-2">
+                          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                          <span className="font-mono text-xs text-white font-medium">
+                            Optimizing & center-cropping to 1:1 square...
+                          </span>
+                          <span className="font-mono text-[10px] text-white/50">
+                            Compressing for instant cloud sync
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-8 h-8 mx-auto text-white/70 mb-2" />
+                          <p className="font-mono text-xs text-white font-semibold">
+                            Click to browse or drag & drop image file
+                          </p>
+                          <p className="font-editorial italic text-[11px] text-white/50 mt-1">
+                            PNG, JPG, WebP, GIF, SVG. Auto-crops & optimizes to high-res 1:1 square.
+                          </p>
+                          <div className="mt-3 flex items-center justify-center gap-2">
+                            <span className="px-3 py-1 rounded bg-white text-black font-display text-[10px] uppercase font-bold tracking-wider hover:bg-neutral-200 transition-colors">
+                              Select Image File
+                            </span>
+                            <span className="font-mono text-[10px] text-white/40">
+                              or paste with Ctrl+V
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </label>
                   </div>
                 ) : (
                   <div className="space-y-1.5">
@@ -652,7 +788,10 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
                       <input
                         type="url"
                         value={imageUrl}
-                        onChange={(e) => setImageUrl(e.target.value)}
+                        onChange={(e) => {
+                          setImageUrl(e.target.value);
+                          setImageMeta(null);
+                        }}
                         placeholder="https://... direct image link"
                         className="w-full bg-black/90 border border-white/20 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white font-mono"
                       />
@@ -662,32 +801,48 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
 
                 {/* 1:1 Square Image Preview Box */}
                 {imageUrl && (
-                  <div className="pt-2 border-t border-white/10 space-y-2">
+                  <div className="pt-2 border-t border-white/10 space-y-3">
                     <div className="flex items-center justify-between font-mono text-[11px] text-white/80">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-white" />
-                        1:1 Square Ratio Preview
+                      <span className="flex items-center gap-1.5 font-bold">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                        1:1 Square Notice Ready
+                        {imageMeta && (
+                          <span className="font-normal text-white/50 text-[10px]">
+                            ({imageMeta.width}×{imageMeta.height} • ~{imageMeta.sizeKb} KB)
+                          </span>
+                        )}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImageUrl('');
-                          if (fileInputRef.current) fileInputRef.current.value = '';
-                        }}
-                        className="text-red-400 hover:text-red-300 text-[10px] uppercase tracking-wider transition-colors"
-                      >
-                        Remove Image
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {imageInputMethod === 'upload' && (
+                          <label
+                            htmlFor="admin-notice-file-input"
+                            className="text-white/80 hover:text-white text-[10px] uppercase tracking-wider transition-colors cursor-pointer underline"
+                          >
+                            Replace
+                          </label>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImageUrl('');
+                            setImageMeta(null);
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          }}
+                          className="text-red-400 hover:text-red-300 text-[10px] uppercase tracking-wider transition-colors"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="relative w-full max-w-[240px] mx-auto aspect-square rounded-xl overflow-hidden border border-white/30 bg-black shadow-xl">
+                    <div className="relative w-full max-w-[260px] mx-auto aspect-square rounded-xl overflow-hidden border border-white/30 bg-black shadow-2xl">
                       <img
                         src={imageUrl}
                         alt="1:1 notice preview"
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/20 font-mono text-[9px] text-white font-bold tracking-wider uppercase">
-                        1:1 Square
+                        1:1 Ratio
                       </div>
                     </div>
                   </div>

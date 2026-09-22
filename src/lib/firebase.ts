@@ -1017,7 +1017,7 @@ function recordLocalAcknowledgedNotification(notificationId: string, memberAlias
 }
 
 /**
- * Send a written notification to all or selected members
+ * Send a written or 1:1 image notification to all or selected members
  */
 export async function sendMemberNotification(
   notificationData: Omit<MemberNotification, 'id' | 'createdAt' | 'acknowledgedBy'>
@@ -1025,10 +1025,15 @@ export async function sendMemberNotification(
   const now = new Date().toISOString();
   const id = `notice_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
+  const isImageNotice = notificationData.noticeType === 'image' || Boolean(notificationData.imageUrl);
+
   const newNotice: MemberNotification = {
     id,
-    title: notificationData.title.trim() || 'Council Directive',
-    message: notificationData.message.trim(),
+    title: notificationData.title?.trim() || (isImageNotice ? 'Visual Notice Directive' : 'Council Directive'),
+    message: notificationData.message ? notificationData.message.trim() : '',
+    noticeType: isImageNotice ? 'image' : 'text',
+    imageUrl: notificationData.imageUrl ? notificationData.imageUrl.trim() : undefined,
+    imageAspectRatio: '1:1',
     targetType: notificationData.targetType,
     targetMemberAliases: notificationData.targetType === 'all' ? [] : notificationData.targetMemberAliases || [],
     acknowledgedBy: [],

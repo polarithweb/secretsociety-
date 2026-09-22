@@ -151,11 +151,14 @@
     },
     "member_notifications": {
       "title": "Member Notification",
-      "description": "Council written notifications dispatched to all or selected members",
+      "description": "Council written and 1:1 image notifications dispatched to all or selected members",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
         "message": { "type": "string" },
+        "noticeType": { "type": "string", "enum": ["text", "image"] },
+        "imageUrl": { "type": "string" },
+        "imageAspectRatio": { "type": "string" },
         "targetType": { "type": "string", "enum": ["all", "specific"] },
         "targetMemberAliases": { "type": "array", "items": { "type": "string" } },
         "acknowledgedBy": { "type": "array", "items": { "type": "string" } },
@@ -163,7 +166,7 @@
         "createdAt": { "type": "string" },
         "senderName": { "type": "string" }
       },
-      "required": ["title", "message", "targetType", "createdAt"]
+      "required": ["title", "targetType", "createdAt"]
     },
     "council_videos": {
       "title": "Council Video Archive",

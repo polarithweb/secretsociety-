@@ -25,7 +25,8 @@ import {
   BookOpen,
   Bell,
   AlertTriangle,
-  Youtube
+  Youtube,
+  Image as ImageIcon
 } from 'lucide-react';
 import {
   SocietySettings,
@@ -506,6 +507,8 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
                   >
                     {isUrgent ? (
                       <AlertTriangle className="w-5 h-5 text-white" />
+                    ) : (currentNotice.noticeType === 'image' || currentNotice.imageUrl) ? (
+                      <ImageIcon className="w-5 h-5 text-white" />
                     ) : (
                       <Bell className="w-5 h-5 text-white" />
                     )}
@@ -519,7 +522,9 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
                             : 'bg-black border-black text-white'
                         }`}
                       >
-                        {isUrgent ? 'URGENT COUNCIL DIRECTIVE' : 'OFFICIAL COUNCIL NOTICE'}
+                        {isUrgent
+                          ? (currentNotice.noticeType === 'image' || currentNotice.imageUrl ? 'URGENT 1:1 VISUAL DIRECTIVE' : 'URGENT COUNCIL DIRECTIVE')
+                          : (currentNotice.noticeType === 'image' || currentNotice.imageUrl ? 'OFFICIAL 1:1 VISUAL DIRECTIVE' : 'OFFICIAL COUNCIL NOTICE')}
                       </span>
                       {remainingCount > 1 && (
                         <span className="font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-black/10 border border-black/15 text-neutral-800 font-semibold">
@@ -556,11 +561,34 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
                 </div>
               </div>
 
-              {/* Written Notification Content Body */}
-              <div className="p-5 sm:p-7 space-y-4 max-h-[50vh] overflow-y-auto">
-                <div className="font-mono text-xs sm:text-sm text-neutral-900 whitespace-pre-wrap leading-relaxed bg-white/70 backdrop-blur-md border border-black/10 rounded-xl p-4 sm:p-5 shadow-sm">
-                  {currentNotice.message}
-                </div>
+              {/* Notice Content Body (Supports 1:1 Image or Written Text) */}
+              <div className="p-5 sm:p-7 space-y-4 max-h-[60vh] overflow-y-auto">
+                {(currentNotice.noticeType === 'image' || currentNotice.imageUrl) && currentNotice.imageUrl ? (
+                  <div className="space-y-4">
+                    {/* 1:1 Aspect Ratio Square Image Display */}
+                    <div className="relative w-full max-w-[320px] sm:max-w-[360px] mx-auto aspect-square rounded-xl overflow-hidden border border-black/15 bg-neutral-950 shadow-md">
+                      <img
+                        src={currentNotice.imageUrl}
+                        alt={currentNotice.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/20 font-mono text-[9px] text-white tracking-widest uppercase">
+                        1:1 Square
+                      </div>
+                    </div>
+
+                    {/* Accompanying message text if present */}
+                    {currentNotice.message && (
+                      <div className="font-mono text-xs sm:text-sm text-neutral-900 whitespace-pre-wrap leading-relaxed bg-white/70 backdrop-blur-md border border-black/10 rounded-xl p-4 sm:p-5 shadow-sm">
+                        {currentNotice.message}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="font-mono text-xs sm:text-sm text-neutral-900 whitespace-pre-wrap leading-relaxed bg-white/70 backdrop-blur-md border border-black/10 rounded-xl p-4 sm:p-5 shadow-sm">
+                    {currentNotice.message}
+                  </div>
+                )}
               </div>
 
               {/* Notification Box Footer with "OK" Button DIRECTLY UNDER */}

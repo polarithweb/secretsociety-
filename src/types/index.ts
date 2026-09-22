@@ -172,7 +172,10 @@ export interface KnowledgeArticle {
 export interface MemberNotification {
   id: string;
   title: string;
-  message: string;
+  message?: string;
+  noticeType?: 'text' | 'image';
+  imageUrl?: string;
+  imageAspectRatio?: string;
   targetType: 'all' | 'specific';
   targetMemberAliases: string[]; // Specific member aliases e.g. ['AGENT_1', 'SHADOW_4']
   acknowledgedBy: string[]; // Member aliases who clicked OK to dismiss

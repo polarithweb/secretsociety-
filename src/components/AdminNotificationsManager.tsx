@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Bell,
   Send,
@@ -17,7 +17,12 @@ import {
   Square,
   ChevronDown,
   ChevronUp,
-  RefreshCw
+  RefreshCw,
+  ImageIcon,
+  UploadCloud,
+  Link2,
+  Maximize2,
+  Eye
 } from 'lucide-react';
 import { MemberAccount, MemberNotification } from '../types';
 import {
@@ -44,6 +49,13 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
   // Compose Form State
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
+  const [noticeType, setNoticeType] = useState<'text' | 'image'>('text');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageInputMethod, setImageInputMethod] = useState<'upload' | 'url'>('upload');
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [lightboxNotice, setLightboxNotice] = useState<MemberNotification | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [urgency, setUrgency] = useState<'standard' | 'urgent'>('standard');
   const [targetType, setTargetType] = useState<'all' | 'specific'>(
     preselectedMemberAlias ? 'specific' : 'all'
@@ -124,6 +136,41 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
     setSelectedAliases([]);
   };
 
+  // Handle image file selection
+  const handleImageFile = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Please select a valid image file (PNG, JPG, WebP, GIF, or SVG).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setImageUrl(reader.result);
+      }
+    };
+    reader.onerror = () => {
+      setErrorMessage('Failed to read selected image file.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleImageFile(file);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleImageFile(file);
+    }
+  };
+
   // Handle form submission
   const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,8 +182,13 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
       return;
     }
 
-    if (!message.trim()) {
+    if (noticeType === 'text' && !message.trim()) {
       setErrorMessage('Please provide the written text content for the notification.');
+      return;
+    }
+
+    if (noticeType === 'image' && !imageUrl.trim()) {
+      setErrorMessage('Please upload a 1:1 image or provide a valid image URL for the notice.');
       return;
     }
 
@@ -151,6 +203,9 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
       await sendMemberNotification({
         title: title.trim(),
         message: message.trim(),
+        noticeType,
+        imageUrl: noticeType === 'image' ? imageUrl.trim() : undefined,
+        imageAspectRatio: '1:1',
         targetType,
         targetMemberAliases: targetType === 'all' ? [] : selectedAliases,
         urgency,
@@ -158,7 +213,7 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
       });
 
       setSendSuccess(
-        `Written notification dispatched successfully to ${
+        `${noticeType === 'image' ? '1:1 Image Notice' : 'Written Notice'} dispatched successfully to ${
           targetType === 'all'
             ? 'all council members'
             : `${selectedAliases.length} selected member${selectedAliases.length > 1 ? 's' : ''}`
@@ -168,9 +223,14 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
       // Reset form
       setTitle('');
       setMessage('');
+      setImageUrl('');
+      setNoticeType('text');
       setUrgency('standard');
       setTargetType('all');
       setSelectedAliases([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       if (onClearPreselectedMember) {
         onClearPreselectedMember();
       }
@@ -274,10 +334,10 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
               </div>
               <div>
                 <h3 className="font-display text-sm sm:text-base font-bold uppercase tracking-wider text-white">
-                  Compose Written Notice
+                  Compose Notice Directive
                 </h3>
                 <p className="font-editorial italic text-xs text-white/60">
-                  Target all members or select specific individuals
+                  Dispatch written directive or 1:1 square image notice to operatives
                 </p>
               </div>
             </div>
@@ -310,6 +370,54 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
           </div>
 
           <form onSubmit={handleSendNotification} className="space-y-5">
+            {/* Notice Format Selector (Text vs 1:1 Image) */}
+            <div className="space-y-1.5">
+              <label className="block font-mono text-[11px] uppercase tracking-wider text-white/80">
+                Notice Format / Type <span className="text-red-400">*</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setNoticeType('text')}
+                  className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition-all ${
+                    noticeType === 'text'
+                      ? 'border-white bg-white/15 text-white shadow-md'
+                      : 'border-white/15 bg-black/40 text-white/60 hover:border-white/30 hover:text-white'
+                  }`}
+                >
+                  <FileText className="w-4 h-4 mt-0.5 shrink-0 text-white" />
+                  <div>
+                    <div className="font-display text-xs uppercase tracking-wider font-bold">
+                      Written Notice
+                    </div>
+                    <div className="font-editorial italic text-[11px] text-white/60">
+                      Standard multi-line directive
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setNoticeType('image')}
+                  className={`p-3 rounded-xl border text-left flex items-start gap-2.5 transition-all ${
+                    noticeType === 'image'
+                      ? 'border-white bg-white/15 text-white shadow-md'
+                      : 'border-white/15 bg-black/40 text-white/60 hover:border-white/30 hover:text-white'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4 mt-0.5 shrink-0 text-white" />
+                  <div>
+                    <div className="font-display text-xs uppercase tracking-wider font-bold">
+                      1:1 Image Notice
+                    </div>
+                    <div className="font-editorial italic text-[11px] text-white/60">
+                      Square bulletin (1:1 ratio)
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             {/* Title Input */}
             <div className="space-y-1.5">
               <label className="block font-mono text-[11px] uppercase tracking-wider text-white/80">
@@ -319,7 +427,7 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Operational Directive: Submit Quarterly Asset Log"
+                placeholder={noticeType === 'image' ? 'e.g. Visual Directive: Security Clearance Chart' : 'e.g. Operational Directive: Submit Quarterly Asset Log'}
                 className="w-full bg-black/80 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all font-mono"
                 required
               />
@@ -466,28 +574,165 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
               )}
             </div>
 
-            {/* Written Message Area */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="block font-mono text-[11px] uppercase tracking-wider text-white/80">
-                  Written Notification Text <span className="text-red-400">*</span>
-                </label>
-                <span className="text-[10px] font-mono text-white/40">
-                  Supports multiple lines & paragraphs
-                </span>
+            {/* 1:1 Image Section (When Image Notice is selected) */}
+            {noticeType === 'image' && (
+              <div className="space-y-4 p-4 rounded-xl border border-white/20 bg-black/80">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-white">
+                    <ImageIcon className="w-4 h-4 text-white" />
+                    <span>1:1 Square Image Source</span>
+                    <span className="text-red-400">*</span>
+                  </div>
+
+                  <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/10 text-[10px] font-mono">
+                    <button
+                      type="button"
+                      onClick={() => setImageInputMethod('upload')}
+                      className={`px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
+                        imageInputMethod === 'upload'
+                          ? 'bg-white text-black font-bold'
+                          : 'text-white/60 hover:text-white'
+                      }`}
+                    >
+                      <UploadCloud className="w-3 h-3" />
+                      Upload File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageInputMethod('url')}
+                      className={`px-2.5 py-1 rounded transition-colors flex items-center gap-1.5 ${
+                        imageInputMethod === 'url'
+                          ? 'bg-white text-black font-bold'
+                          : 'text-white/60 hover:text-white'
+                      }`}
+                    >
+                      <Link2 className="w-3 h-3" />
+                      Image URL
+                    </button>
+                  </div>
+                </div>
+
+                {imageInputMethod === 'upload' ? (
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragOver(true);
+                    }}
+                    onDragLeave={() => setIsDragOver(false)}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${
+                      isDragOver
+                        ? 'border-white bg-white/15'
+                        : 'border-white/20 hover:border-white/40 bg-white/5'
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInputChange}
+                      className="hidden"
+                    />
+                    <UploadCloud className="w-8 h-8 mx-auto text-white/50 mb-2" />
+                    <p className="font-mono text-xs text-white">
+                      Click to choose or drag & drop 1:1 image file
+                    </p>
+                    <p className="font-editorial italic text-[11px] text-white/40 mt-1">
+                      Supports PNG, JPG, WebP, GIF, SVG (renders in 1:1 square ratio)
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <label className="block font-mono text-[10px] uppercase tracking-wider text-white/60">
+                      Direct Image URL Link
+                    </label>
+                    <div className="relative">
+                      <Link2 className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="url"
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                        placeholder="https://... direct image link"
+                        className="w-full bg-black/90 border border-white/20 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white font-mono"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* 1:1 Square Image Preview Box */}
+                {imageUrl && (
+                  <div className="pt-2 border-t border-white/10 space-y-2">
+                    <div className="flex items-center justify-between font-mono text-[11px] text-white/80">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-white" />
+                        1:1 Square Ratio Preview
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageUrl('');
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                        className="text-red-400 hover:text-red-300 text-[10px] uppercase tracking-wider transition-colors"
+                      >
+                        Remove Image
+                      </button>
+                    </div>
+
+                    <div className="relative w-full max-w-[240px] mx-auto aspect-square rounded-xl overflow-hidden border border-white/30 bg-black shadow-xl">
+                      <img
+                        src={imageUrl}
+                        alt="1:1 notice preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/20 font-mono text-[9px] text-white font-bold tracking-wider uppercase">
+                        1:1 Square
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Optional Accompanying Caption */}
+                <div className="space-y-1.5 pt-2">
+                  <label className="block font-mono text-[10px] uppercase tracking-wider text-white/60">
+                    Accompanying Directive Note / Caption (Optional)
+                  </label>
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={3}
+                    placeholder="Add an optional brief text note to accompany the 1:1 image notice..."
+                    className="w-full bg-black/60 border border-white/15 rounded-lg p-3 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white font-mono leading-relaxed"
+                  />
+                </div>
               </div>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={6}
-                placeholder="Write the notification message here. For example:&#10;&#10;Greetings Operative,&#10;&#10;Please ensure you file your Weekly Intelligence and Asset Status report before 18:00 UTC. In addition, review the updated protocol in the Knowledge Portal.&#10;&#10;— Council Directive"
-                className="w-full bg-black/80 border border-white/20 rounded-xl p-4 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all font-mono leading-relaxed"
-                required
-              />
-              <p className="text-[11px] font-editorial italic text-white/50">
-                This exact written notice will pop up on screen immediately when the member logs into the task portal. Once the member clicks "OK", it will be permanently dismissed.
-              </p>
-            </div>
+            )}
+
+            {/* Written Message Area (When Written Notice is selected) */}
+            {noticeType === 'text' && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block font-mono text-[11px] uppercase tracking-wider text-white/80">
+                    Written Notification Text <span className="text-red-400">*</span>
+                  </label>
+                  <span className="text-[10px] font-mono text-white/40">
+                    Supports multiple lines & paragraphs
+                  </span>
+                </div>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={6}
+                  placeholder="Write the notification message here. For example:&#10;&#10;Greetings Operative,&#10;&#10;Please ensure you file your Weekly Intelligence and Asset Status report before 18:00 UTC. In addition, review the updated protocol in the Knowledge Portal.&#10;&#10;— Council Directive"
+                  className="w-full bg-black/80 border border-white/20 rounded-xl p-4 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all font-mono leading-relaxed"
+                  required={noticeType === 'text'}
+                />
+                <p className="text-[11px] font-editorial italic text-white/50">
+                  This exact written notice will pop up on screen immediately when the member logs into the task portal. Once the member clicks "OK", it will be permanently dismissed.
+                </p>
+              </div>
+            )}
 
             {/* Submit Button */}
             <div className="pt-2">
@@ -504,7 +749,11 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
                 ) : (
                   <>
                     <Send className="w-4 h-4 text-black" />
-                    <span>Dispatch Notification to Members</span>
+                    <span>
+                      {noticeType === 'image'
+                        ? 'Dispatch 1:1 Image Notice to Members'
+                        : 'Dispatch Written Notice to Members'}
+                    </span>
                   </>
                 )}
               </button>
@@ -595,6 +844,10 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
                             {isUrgent ? 'URGENT' : 'STANDARD'}
                           </span>
 
+                          <span className="font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 rounded border border-white/10 bg-white/5 text-white/70">
+                            {notice.noticeType === 'image' || notice.imageUrl ? '1:1 IMAGE' : 'WRITTEN'}
+                          </span>
+
                           <span className="font-mono text-[10px] text-white/50">
                             {new Date(notice.createdAt).toLocaleString(undefined, {
                               month: 'short',
@@ -634,10 +887,49 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
                       </button>
                     </div>
 
-                    {/* Notice Message Preview */}
-                    <div className="bg-black/60 rounded-lg p-3 border border-white/10 font-mono text-xs text-white/85 whitespace-pre-wrap leading-relaxed">
-                      {notice.message}
-                    </div>
+                    {/* Notice Message or 1:1 Image Preview */}
+                    {notice.noticeType === 'image' || notice.imageUrl ? (
+                      <div className="bg-black/60 rounded-lg p-3 border border-white/10 space-y-2.5">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3">
+                          <div
+                            onClick={() => setLightboxNotice(notice)}
+                            className="relative w-24 h-24 sm:w-28 sm:h-28 aspect-square rounded-lg border border-white/25 overflow-hidden shrink-0 bg-neutral-900 cursor-pointer group shadow-sm"
+                            title="Click to view 1:1 image in full size"
+                          >
+                            <img
+                              src={notice.imageUrl}
+                              alt={notice.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Maximize2 className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/80 text-[8px] font-mono text-white/90 uppercase tracking-widest border border-white/20">
+                              1:1
+                            </div>
+                          </div>
+
+                          <div className="flex-1 space-y-1.5 text-center sm:text-left">
+                            <span className="font-mono text-[9px] uppercase tracking-wider px-2 py-0.5 rounded bg-white/10 text-white/80 border border-white/15 inline-block">
+                              1:1 Image Notice
+                            </span>
+                            {notice.message ? (
+                              <p className="font-mono text-xs text-white/85 whitespace-pre-wrap leading-relaxed">
+                                {notice.message}
+                              </p>
+                            ) : (
+                              <p className="font-editorial italic text-xs text-white/40">
+                                Visual directive only (no accompanying text).
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-black/60 rounded-lg p-3 border border-white/10 font-mono text-xs text-white/85 whitespace-pre-wrap leading-relaxed">
+                        {notice.message}
+                      </div>
+                    )}
 
                     {/* Acknowledgment Status Bar */}
                     <div className="mt-3 pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono">
@@ -736,7 +1028,7 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
                   </span>
                 </div>
                 <h3 className="font-display text-sm sm:text-base font-bold uppercase tracking-wider text-white">
-                  Delete Written Notice?
+                  Delete Notice Directive?
                 </h3>
                 <p className="font-editorial italic text-xs text-white/70 leading-relaxed">
                   Are you sure you want to permanently delete{' '}
@@ -775,6 +1067,58 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
                     Confirm Delete
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LIGHTBOX MODAL FOR 1:1 IMAGE NOTICES */}
+      {lightboxNotice && lightboxNotice.imageUrl && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="bg-black border border-white/20 rounded-2xl max-w-lg w-full p-5 sm:p-6 space-y-4 shadow-2xl relative my-auto">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <span className="font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 rounded bg-white/10 border border-white/20 text-white/80">
+                  1:1 Visual Directive Preview
+                </span>
+                <h3 className="font-display text-base font-bold uppercase tracking-wider text-white mt-1">
+                  {lightboxNotice.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLightboxNotice(null)}
+                className="p-1.5 rounded-lg border border-white/15 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="relative w-full max-w-md mx-auto aspect-square rounded-xl overflow-hidden border border-white/20 bg-neutral-950 shadow-inner">
+              <img
+                src={lightboxNotice.imageUrl}
+                alt={lightboxNotice.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/20 font-mono text-[9px] text-white uppercase tracking-wider">
+                1:1 Aspect Ratio
+              </div>
+            </div>
+
+            {lightboxNotice.message && (
+              <div className="p-3.5 rounded-xl border border-white/10 bg-white/5 font-mono text-xs text-white/80 whitespace-pre-wrap leading-relaxed">
+                {lightboxNotice.message}
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-white/10 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setLightboxNotice(null)}
+                className="px-4 py-2 rounded-lg bg-white text-black hover:bg-neutral-200 font-display text-xs uppercase tracking-wider font-bold transition-colors"
+              >
+                Close Preview
               </button>
             </div>
           </div>

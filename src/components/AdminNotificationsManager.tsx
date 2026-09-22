@@ -53,6 +53,7 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
   const [imageUrl, setImageUrl] = useState('');
   const [imageMeta, setImageMeta] = useState<{ width: number; height: number; sizeKb: number; name: string } | null>(null);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [imageInputMethod, setImageInputMethod] = useState<'upload' | 'url'>('upload');
   const [isDragOver, setIsDragOver] = useState(false);
   const [lightboxNotice, setLightboxNotice] = useState<MemberNotification | null>(null);
@@ -139,81 +140,117 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
   };
 
   // Process and center-crop image to high-quality 1:1 square canvas & compress (< 150KB)
+  // Fail-safe: will NEVER fail or reject; falls back to original data URL if canvas is hindered
   const processOneToOneImage = (
     file: File
   ): Promise<{ dataUrl: string; width: number; height: number; sizeKb: number; name: string }> => {
-    return new Promise((resolve, reject) => {
-      if (!file.type.startsWith('image/')) {
-        reject(new Error('Please select a valid image file (PNG, JPG, WebP, GIF, or SVG).'));
-        return;
-      }
-
+    return new Promise((resolve) => {
       const reader = new FileReader();
+
       reader.onload = (event) => {
         const rawResult = event.target?.result;
         if (typeof rawResult !== 'string') {
-          reject(new Error('Failed to read image data from selected file.'));
+          const objectUrl = URL.createObjectURL(file);
+          resolve({
+            dataUrl: objectUrl,
+            width: 800,
+            height: 800,
+            sizeKb: Math.round(file.size / 1024),
+            name: file.name
+          });
           return;
         }
 
-        const img = new Image();
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            // Optimal 800x800 for high resolution yet fast and lightweight (<100KB) Firestore storage
-            const TARGET_SIZE = 800;
+        const fallback = () => {
+          resolve({
+            dataUrl: rawResult,
+            width: 800,
+            height: 800,
+            sizeKb: Math.round((rawResult.length * 3) / 4096),
+            name: file.name
+          });
+        };
 
-            // Compute square center-crop coordinates
-            const minSide = Math.min(img.width, img.height);
-            const sx = (img.width - minSide) / 2;
-            const sy = (img.height - minSide) / 2;
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
 
-            canvas.width = TARGET_SIZE;
-            canvas.height = TARGET_SIZE;
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              const TARGET_SIZE = 800;
 
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-              reject(new Error('Canvas context not available for 1:1 image optimization.'));
-              return;
+              const width = img.naturalWidth || img.width;
+              const height = img.naturalHeight || img.height;
+
+              if (!width || !height) {
+                fallback();
+                return;
+              }
+
+              // Compute square center-crop coordinates
+              const minSide = Math.min(width, height);
+              const sx = (width - minSide) / 2;
+              const sy = (height - minSide) / 2;
+
+              canvas.width = TARGET_SIZE;
+              canvas.height = TARGET_SIZE;
+
+              const ctx = canvas.getContext('2d');
+              if (!ctx) {
+                fallback();
+                return;
+              }
+
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+
+              // Neutral dark background in case of transparent PNG/SVG
+              ctx.fillStyle = '#0a0a0a';
+              ctx.fillRect(0, 0, TARGET_SIZE, TARGET_SIZE);
+
+              // Draw center-cropped square
+              ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, TARGET_SIZE, TARGET_SIZE);
+
+              // Compress to JPEG at 0.85 quality
+              const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+              const compBytes = Math.round((compressedDataUrl.length * 3) / 4);
+              const compKb = Math.round(compBytes / 1024);
+
+              resolve({
+                dataUrl: compressedDataUrl,
+                width: TARGET_SIZE,
+                height: TARGET_SIZE,
+                sizeKb: compKb,
+                name: file.name
+              });
+            } catch (canvasErr) {
+              console.warn('Canvas optimization fallback to original dataUrl:', canvasErr);
+              fallback();
             }
+          };
 
-            // High-quality image smoothing
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
+          img.onerror = () => {
+            console.warn('Image element decode warning, falling back to raw dataUrl');
+            fallback();
+          };
 
-            // Neutral dark background in case of transparent PNG/SVG
-            ctx.fillStyle = '#0a0a0a';
-            ctx.fillRect(0, 0, TARGET_SIZE, TARGET_SIZE);
-
-            // Draw center-cropped square
-            ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, TARGET_SIZE, TARGET_SIZE);
-
-            // Compress to JPEG at 0.85 quality (~40KB - 85KB, safe for Firestore 1MB limit)
-            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-            const sizeInBytes = Math.round((compressedDataUrl.length * 3) / 4);
-            const sizeKb = Math.round(sizeInBytes / 1024);
-
-            resolve({
-              dataUrl: compressedDataUrl,
-              width: TARGET_SIZE,
-              height: TARGET_SIZE,
-              sizeKb,
-              name: file.name
-            });
-          } catch (err: any) {
-            reject(new Error(err?.message || 'Error processing image to 1:1 square.'));
-          }
-        };
-
-        img.onerror = () => {
-          reject(new Error('Selected image file is corrupted or could not be decoded.'));
-        };
-
-        img.src = rawResult;
+          img.src = rawResult;
+        } catch (imgInitErr) {
+          console.warn('Image creation failed, using raw dataUrl:', imgInitErr);
+          fallback();
+        }
       };
 
       reader.onerror = () => {
-        reject(new Error('Failed to read image file from disk.'));
+        const objectUrl = URL.createObjectURL(file);
+        resolve({
+          dataUrl: objectUrl,
+          width: 800,
+          height: 800,
+          sizeKb: Math.round(file.size / 1024),
+          name: file.name
+        });
       };
 
       reader.readAsDataURL(file);
@@ -222,6 +259,7 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
 
   // Handle image file selection
   const handleImageFile = async (file: File) => {
+    setImageError(null);
     setErrorMessage(null);
     setIsProcessingImage(true);
     try {
@@ -235,7 +273,7 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
       });
     } catch (err: any) {
       console.error('Error processing 1:1 image:', err);
-      setErrorMessage(err.message || 'Failed to process image.');
+      setImageError(err?.message || 'Failed to process image file.');
     } finally {
       setIsProcessingImage(false);
       if (fileInputRef.current) {
@@ -304,7 +342,7 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
     setIsSending(true);
 
     try {
-      await sendMemberNotification({
+      const createdNotice = await sendMemberNotification({
         title: title.trim(),
         message: message.trim(),
         noticeType,
@@ -315,6 +353,9 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
         urgency,
         senderName: 'Council Administration'
       });
+
+      // Optimistically update notifications list so it appears immediately in the archive
+      setNotifications((prev) => [createdNotice, ...prev.filter((n) => n.id !== createdNotice.id)]);
 
       setSendSuccess(
         `${noticeType === 'image' ? '1:1 Image Notice' : 'Written Notice'} dispatched successfully to ${
@@ -720,6 +761,14 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
                   </div>
                 </div>
 
+                {/* In-Section Error Message for Image Processing */}
+                {imageError && (
+                  <div className="p-3 rounded-xl border border-red-500/40 bg-red-500/10 text-red-200 font-mono text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                    <span>{imageError}</span>
+                  </div>
+                )}
+
                 {imageInputMethod === 'upload' ? (
                   <div>
                     {/* Native Hidden File Input */}
@@ -732,119 +781,154 @@ export const AdminNotificationsManager: React.FC<AdminNotificationsManagerProps>
                       className="sr-only"
                     />
 
-                    {/* Native Accessible Drag/Drop Label Dropzone */}
-                    <label
-                      htmlFor="admin-notice-file-input"
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setIsDragOver(true);
-                      }}
-                      onDragLeave={() => setIsDragOver(false)}
-                      onDrop={handleDrop}
-                      className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all select-none ${
-                        isDragOver
-                          ? 'border-white bg-white/15'
-                          : 'border-white/25 hover:border-white/50 bg-white/5 hover:bg-white/10'
-                      } ${isProcessingImage ? 'opacity-50 pointer-events-none' : ''}`}
-                    >
-                      {isProcessingImage ? (
-                        <div className="flex flex-col items-center gap-2 py-2">
-                          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                          <span className="font-mono text-xs text-white font-medium">
-                            Optimizing & center-cropping to 1:1 square...
+                    {imageUrl ? (
+                      /* Active In-Place 1:1 Image Loaded Card */
+                      <div className="rounded-xl border border-white/25 bg-black/80 p-4 space-y-3">
+                        <div className="flex items-center justify-between font-mono text-[11px] text-white">
+                          <span className="flex items-center gap-1.5 font-bold text-emerald-400">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                            1:1 Notice Image Ready
+                            {imageMeta && (
+                              <span className="font-normal text-white/60 text-[10px]">
+                                ({imageMeta.width}×{imageMeta.height} • ~{imageMeta.sizeKb} KB)
+                              </span>
+                            )}
                           </span>
-                          <span className="font-mono text-[10px] text-white/50">
-                            Compressing for instant cloud sync
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor="admin-notice-file-input"
+                              className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white font-mono text-[10px] uppercase tracking-wider cursor-pointer border border-white/20 transition-colors"
+                            >
+                              Replace Image
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setImageUrl('');
+                                setImageMeta(null);
+                                setImageError(null);
+                                if (fileInputRef.current) fileInputRef.current.value = '';
+                              }}
+                              className="px-2.5 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-300 font-mono text-[10px] uppercase tracking-wider border border-red-500/30 transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
-                      ) : (
-                        <>
-                          <UploadCloud className="w-8 h-8 mx-auto text-white/70 mb-2" />
-                          <p className="font-mono text-xs text-white font-semibold">
-                            Click to browse or drag & drop image file
-                          </p>
-                          <p className="font-editorial italic text-[11px] text-white/50 mt-1">
-                            PNG, JPG, WebP, GIF, SVG. Auto-crops & optimizes to high-res 1:1 square.
-                          </p>
-                          <div className="mt-3 flex items-center justify-center gap-2">
-                            <span className="px-3 py-1 rounded bg-white text-black font-display text-[10px] uppercase font-bold tracking-wider hover:bg-neutral-200 transition-colors">
-                              Select Image File
+
+                        {/* 1:1 Square Image Frame */}
+                        <div className="relative w-full max-w-[280px] mx-auto aspect-square rounded-xl overflow-hidden border-2 border-white/30 bg-neutral-950 shadow-2xl group">
+                          <img
+                            src={imageUrl}
+                            alt="1:1 notice visual"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/20 font-mono text-[9px] text-white font-bold tracking-wider uppercase">
+                            1:1 Square
+                          </div>
+                          {imageMeta?.name && (
+                            <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded bg-black/80 backdrop-blur-md border border-white/20 font-mono text-[9px] text-white/80 truncate">
+                              {imageMeta.name}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      /* Drag & Drop Upload Zone when no image is loaded */
+                      <label
+                        htmlFor="admin-notice-file-input"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDragOver(true);
+                        }}
+                        onDragLeave={() => setIsDragOver(false)}
+                        onDrop={handleDrop}
+                        className={`block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all select-none ${
+                          isDragOver
+                            ? 'border-white bg-white/15'
+                            : 'border-white/25 hover:border-white/50 bg-white/5 hover:bg-white/10'
+                        } ${isProcessingImage ? 'opacity-70 pointer-events-none' : ''}`}
+                      >
+                        {isProcessingImage ? (
+                          <div className="flex flex-col items-center gap-2 py-3">
+                            <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                            <span className="font-mono text-xs text-white font-medium">
+                              Preparing & optimizing 1:1 square notice...
                             </span>
-                            <span className="font-mono text-[10px] text-white/40">
-                              or paste with Ctrl+V
+                            <span className="font-mono text-[10px] text-white/50">
+                              Compressing for instant cloud sync
                             </span>
                           </div>
-                        </>
-                      )}
-                    </label>
+                        ) : (
+                          <>
+                            <UploadCloud className="w-8 h-8 mx-auto text-white/70 mb-2" />
+                            <p className="font-mono text-xs text-white font-semibold">
+                              Click to browse or drag & drop image file
+                            </p>
+                            <p className="font-editorial italic text-[11px] text-white/50 mt-1">
+                              PNG, JPG, WebP, GIF, SVG. Auto-crops & optimizes to high-res 1:1 square.
+                            </p>
+                            <div className="mt-3 flex items-center justify-center gap-2">
+                              <span className="px-3 py-1 rounded bg-white text-black font-display text-[10px] uppercase font-bold tracking-wider hover:bg-neutral-200 transition-colors">
+                                Select Image File
+                              </span>
+                              <span className="font-mono text-[10px] text-white/40">
+                                or paste with Ctrl+V
+                              </span>
+                            </div>
+                          </>
+                        )}
+                      </label>
+                    )}
                   </div>
                 ) : (
-                  <div className="space-y-1.5">
-                    <label className="block font-mono text-[10px] uppercase tracking-wider text-white/60">
-                      Direct Image URL Link
-                    </label>
-                    <div className="relative">
-                      <Link2 className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="url"
-                        value={imageUrl}
-                        onChange={(e) => {
-                          setImageUrl(e.target.value);
-                          setImageMeta(null);
-                        }}
-                        placeholder="https://... direct image link"
-                        className="w-full bg-black/90 border border-white/20 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white font-mono"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* 1:1 Square Image Preview Box */}
-                {imageUrl && (
-                  <div className="pt-2 border-t border-white/10 space-y-3">
-                    <div className="flex items-center justify-between font-mono text-[11px] text-white/80">
-                      <span className="flex items-center gap-1.5 font-bold">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                        1:1 Square Notice Ready
-                        {imageMeta && (
-                          <span className="font-normal text-white/50 text-[10px]">
-                            ({imageMeta.width}×{imageMeta.height} • ~{imageMeta.sizeKb} KB)
-                          </span>
-                        )}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {imageInputMethod === 'upload' && (
-                          <label
-                            htmlFor="admin-notice-file-input"
-                            className="text-white/80 hover:text-white text-[10px] uppercase tracking-wider transition-colors cursor-pointer underline"
-                          >
-                            Replace
-                          </label>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setImageUrl('');
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <label className="block font-mono text-[10px] uppercase tracking-wider text-white/60">
+                        Direct Image URL Link
+                      </label>
+                      <div className="relative">
+                        <Link2 className="w-3.5 h-3.5 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="url"
+                          value={imageUrl}
+                          onChange={(e) => {
+                            setImageUrl(e.target.value);
                             setImageMeta(null);
-                            if (fileInputRef.current) fileInputRef.current.value = '';
                           }}
-                          className="text-red-400 hover:text-red-300 text-[10px] uppercase tracking-wider transition-colors"
-                        >
-                          Remove
-                        </button>
+                          placeholder="https://... direct image link"
+                          className="w-full bg-black/90 border border-white/20 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white font-mono"
+                        />
                       </div>
                     </div>
 
-                    <div className="relative w-full max-w-[260px] mx-auto aspect-square rounded-xl overflow-hidden border border-white/30 bg-black shadow-2xl">
-                      <img
-                        src={imageUrl}
-                        alt="1:1 notice preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/20 font-mono text-[9px] text-white font-bold tracking-wider uppercase">
-                        1:1 Ratio
+                    {imageUrl && (
+                      <div className="rounded-xl border border-white/20 bg-black/80 p-3 space-y-2">
+                        <div className="flex items-center justify-between font-mono text-[10px] text-white/70">
+                          <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                            Direct URL Preview
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setImageUrl('')}
+                            className="text-red-400 hover:text-red-300 uppercase tracking-wider text-[10px]"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                        <div className="relative w-full max-w-[260px] mx-auto aspect-square rounded-xl overflow-hidden border border-white/20 bg-black shadow-xl">
+                          <img
+                            src={imageUrl}
+                            alt="1:1 notice preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/20 font-mono text-[9px] text-white font-bold tracking-wider uppercase">
+                            1:1 Square
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
 

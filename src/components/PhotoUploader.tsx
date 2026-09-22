@@ -24,45 +24,66 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   // Compress image on canvas to keep document light for Firestore (< 250KB per image)
+  // Fail-safe: if canvas processing fails for any reason, falls back to raw data URL
   const processImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (readerEvent) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 900;
-          const MAX_HEIGHT = 900;
-          let width = img.width;
-          let height = img.height;
+        const rawResult = readerEvent.target?.result as string;
+        if (!rawResult) {
+          resolve('');
+          return;
+        }
 
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            try {
+              const canvas = document.createElement('canvas');
+              const MAX_WIDTH = 900;
+              const MAX_HEIGHT = 900;
+              let width = img.naturalWidth || img.width;
+              let height = img.naturalHeight || img.height;
 
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            reject(new Error('Canvas context not available'));
-            return;
-          }
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-          resolve(compressedDataUrl);
-        };
-        img.onerror = () => reject(new Error('Failed to load image file'));
-        img.src = readerEvent.target?.result as string;
+              if (!width || !height) {
+                resolve(rawResult);
+                return;
+              }
+
+              if (width > height) {
+                if (width > MAX_WIDTH) {
+                  height *= MAX_WIDTH / width;
+                  width = MAX_WIDTH;
+                }
+              } else {
+                if (height > MAX_HEIGHT) {
+                  width *= MAX_HEIGHT / height;
+                  height = MAX_HEIGHT;
+                }
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              if (!ctx) {
+                resolve(rawResult);
+                return;
+              }
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+              resolve(compressedDataUrl);
+            } catch {
+              resolve(rawResult);
+            }
+          };
+          img.onerror = () => resolve(rawResult);
+          img.src = rawResult;
+        } catch {
+          resolve(rawResult);
+        }
       };
-      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.onerror = () => resolve('');
       reader.readAsDataURL(file);
     });
   };
@@ -162,37 +183,40 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
         {/* Upload Trigger Tile */}
         {photos.length < maxPhotos && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isProcessing}
-            className="aspect-square rounded-lg border-2 border-dashed border-white/20 hover:border-white/50 bg-black hover:bg-white/5 transition-all flex flex-col items-center justify-center p-3 text-center group cursor-pointer focus:outline-none focus:ring-1 focus:ring-white/40"
-          >
+          <div>
             <input
+              id="photo-uploader-input"
               ref={fileInputRef}
               type="file"
               accept="image/*"
               multiple
               onChange={handleFileSelect}
-              className="hidden"
+              className="sr-only"
             />
-            {isProcessing ? (
-              <div className="flex flex-col items-center gap-1.5">
-                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span className="font-mono text-[11px] text-white">Processing...</span>
-              </div>
-            ) : (
-              <>
-                <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-1.5 transition-colors border border-white/10">
-                  <Upload className="w-5 h-5 text-white" />
+            <label
+              htmlFor="photo-uploader-input"
+              className={`aspect-square rounded-lg border-2 border-dashed border-white/20 hover:border-white/50 bg-black hover:bg-white/5 transition-all flex flex-col items-center justify-center p-3 text-center group cursor-pointer select-none ${
+                isProcessing ? 'opacity-60 pointer-events-none' : ''
+              }`}
+            >
+              {isProcessing ? (
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span className="font-mono text-[11px] text-white">Processing...</span>
                 </div>
-                <span className="font-mono text-xs font-semibold uppercase tracking-wider text-white">
-                  Upload Photo
-                </span>
-                <span className="font-mono text-[10px] text-white/60 mt-0.5">JPG / PNG</span>
-              </>
-            )}
-          </button>
+              ) : (
+                <>
+                  <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-white/10 flex items-center justify-center text-white mb-1.5 transition-colors border border-white/10">
+                    <Upload className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="font-mono text-xs font-semibold uppercase tracking-wider text-white">
+                    Upload Photo
+                  </span>
+                  <span className="font-mono text-[10px] text-white/60 mt-0.5">JPG / PNG</span>
+                </>
+              )}
+            </label>
+          </div>
         )}
       </div>
 

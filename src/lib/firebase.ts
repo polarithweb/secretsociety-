@@ -1017,6 +1017,35 @@ function recordLocalAcknowledgedNotification(notificationId: string, memberAlias
 }
 
 /**
+ * Helper to get locally stored notifications
+ */
+function getStoredLocalNotifications(): MemberNotification[] {
+  try {
+    const raw = localStorage.getItem('secretsociety_local_notifications');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Helper to save locally stored notifications
+ */
+function setStoredLocalNotifications(list: MemberNotification[]): void {
+  try {
+    localStorage.setItem('secretsociety_local_notifications', JSON.stringify(list));
+  } catch (e) {
+    // If quota exceeded due to large image, trim old items
+    try {
+      const trimmed = list.slice(0, 15);
+      localStorage.setItem('secretsociety_local_notifications', JSON.stringify(trimmed));
+    } catch {
+      // ignore
+    }
+  }
+}
+
+/**
  * Send a written or 1:1 image notification to all or selected members
  */
 export async function sendMemberNotification(
@@ -1042,20 +1071,17 @@ export async function sendMemberNotification(
     senderName: notificationData.senderName || 'Council Administration'
   };
 
+  // 1. Immediately store in local cache so UI displays it with zero lag
+  const localList = getStoredLocalNotifications();
+  const updatedLocal = [newNotice, ...localList.filter((n) => n.id !== id)];
+  setStoredLocalNotifications(updatedLocal);
+
+  // 2. Persist to Firestore
   try {
     const docRef = doc(MEMBER_NOTIFICATIONS_COLLECTION, id);
     await setDoc(docRef, newNotice);
   } catch (err) {
-    console.error('Error saving notification to Firestore:', err);
-    // Fallback: save to localStorage
-    try {
-      const stored = localStorage.getItem('secretsociety_local_notifications');
-      const list: MemberNotification[] = stored ? JSON.parse(stored) : [];
-      list.unshift(newNotice);
-      localStorage.setItem('secretsociety_local_notifications', JSON.stringify(list));
-    } catch (e) {
-      // Ignore
-    }
+    console.error('Error saving notification to Firestore, kept in local store:', err);
   }
 
   return newNotice;
@@ -1065,23 +1091,28 @@ export async function sendMemberNotification(
  * Get all notifications dispatched by admin
  */
 export async function getMemberNotifications(): Promise<MemberNotification[]> {
+  const localList = getStoredLocalNotifications();
+
   try {
     const snap = await getDocs(MEMBER_NOTIFICATIONS_COLLECTION);
-    const notices: MemberNotification[] = [];
+    const remoteNotices: MemberNotification[] = [];
     snap.forEach((d) => {
-      notices.push({ ...(d.data() as MemberNotification), id: d.id });
+      remoteNotices.push({ ...(d.data() as MemberNotification), id: d.id });
     });
 
-    notices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return notices;
+    // Merge remote and local (remote takes precedence, local fills any gaps)
+    const map = new Map<string, MemberNotification>();
+    localList.forEach((n) => map.set(n.id, n));
+    remoteNotices.forEach((n) => map.set(n.id, n));
+
+    const merged = Array.from(map.values());
+    merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    setStoredLocalNotifications(merged);
+    return merged;
   } catch (err) {
-    console.warn('Error fetching member notifications from Firestore:', err);
-    try {
-      const stored = localStorage.getItem('secretsociety_local_notifications');
-      return stored ? JSON.parse(stored) : [];
-    } catch (e) {
-      return [];
-    }
+    console.warn('Error fetching member notifications from Firestore, using local cache:', err);
+    localList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return localList;
   }
 }
 
@@ -1095,20 +1126,28 @@ export function subscribeToMemberNotifications(
     const unsubscribe = onSnapshot(
       MEMBER_NOTIFICATIONS_COLLECTION,
       (snap) => {
-        const notices: MemberNotification[] = [];
+        const localList = getStoredLocalNotifications();
+        const map = new Map<string, MemberNotification>();
+        localList.forEach((n) => map.set(n.id, n));
+
         snap.forEach((d) => {
-          notices.push({ ...(d.data() as MemberNotification), id: d.id });
+          map.set(d.id, { ...(d.data() as MemberNotification), id: d.id });
         });
-        notices.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        callback(notices);
+
+        const merged = Array.from(map.values());
+        merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setStoredLocalNotifications(merged);
+        callback(merged);
       },
       (err) => {
         console.warn('Member notifications subscription warning:', err);
+        getMemberNotifications().then(callback).catch(() => callback([]));
       }
     );
     return unsubscribe;
   } catch (err) {
     console.warn('Failed to subscribe to member notifications:', err);
+    getMemberNotifications().then(callback).catch(() => callback([]));
     return () => {};
   }
 }
@@ -1191,6 +1230,10 @@ export async function acknowledgeNotification(
  */
 export async function deleteMemberNotification(notificationId: string): Promise<void> {
   if (!notificationId) return;
+
+  const localList = getStoredLocalNotifications();
+  const updated = localList.filter((n) => n.id !== notificationId);
+  setStoredLocalNotifications(updated);
 
   try {
     const docRef = doc(MEMBER_NOTIFICATIONS_COLLECTION, notificationId);

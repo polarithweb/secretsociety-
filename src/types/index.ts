@@ -202,5 +202,47 @@ export interface CouncilVideo {
   updatedAt?: string;
 }
 
-export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge' | 'videos';
+// ----------------------------------------------------
+// DIRECT MEMBER-ADMIN ENCRYPTED CHAT (/#/chat)
+// ----------------------------------------------------
+
+export interface ChatMessage {
+  id: string;
+  threadId: string; // The memberAlias, e.g. "SHADOW_4"
+  memberAlias: string;
+  memberName?: string;
+  senderRole: 'member' | 'admin';
+  senderAlias: string; // e.g. "SHADOW_4" or "Council Administrator"
+  text: string; // strictly text only - no photos allowed
+  createdAt: string; // ISO string
+  readByAdmin: boolean;
+  readByMember: boolean;
+}
+
+export interface ChatThread {
+  id: string; // Thread ID = memberAlias
+  memberAlias: string;
+  memberName?: string;
+  lastMessageText: string;
+  lastMessageAt: string;
+  lastSenderRole: 'member' | 'admin';
+  unreadForAdminCount: number;
+  unreadForMemberCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatFirebaseConfig {
+  projectId: string;
+  apiKey: string;
+  appId: string;
+  authDomain?: string;
+  firestoreDatabaseId?: string;
+  storageBucket?: string;
+  messagingSenderId?: string;
+  isCustomProject?: boolean;
+  chatInstanceLabel?: string;
+}
+
+export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge' | 'videos' | 'chat';
 

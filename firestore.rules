@@ -61,5 +61,16 @@ service cloud.firestore {
       allow read: if true;
       allow write: if true;
     }
+
+    // Direct Member-Admin Chat threads and strictly text-only messages
+    match /chat_threads/{threadId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    match /chat_messages/{messageId} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

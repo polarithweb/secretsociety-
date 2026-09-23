@@ -14,8 +14,9 @@ import { AdminPortal } from './components/AdminPortal';
 import { MemberInfoPortal } from './components/MemberInfoPortal';
 import { KnowledgePortal } from './components/KnowledgePortal';
 import { CouncilVideosPortal } from './components/CouncilVideosPortal';
+import { MemberChatPortal } from './components/MemberChatPortal';
 
-export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge' | 'videos';
+export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge' | 'videos' | 'chat';
 
 export default function App() {
   const [settings, setSettings] = useState<SocietySettings>(DEFAULT_SETTINGS);
@@ -23,10 +24,21 @@ export default function App() {
   const [submissions, setSubmissions] = useState<Answersheet[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Determine active route based strictly on URL /#/admin, /#/info, /#/knowledge, /#/videos, or pathname
+  // Determine active route based strictly on URL /#/admin, /#/info, /#/knowledge, /#/videos, /#/chat, or pathname
   const detectRoute = (): AppRoute => {
     const path = window.location.pathname.toLowerCase();
     const hash = window.location.hash.toLowerCase();
+
+    if (
+      hash === '#/chat' ||
+      hash === '#chat' ||
+      hash.startsWith('#/chat') ||
+      path.endsWith('/chat') ||
+      path.endsWith('/chat/') ||
+      path.includes('/chat')
+    ) {
+      return 'chat';
+    }
 
     if (
       hash === '#/admin' ||
@@ -144,7 +156,7 @@ export default function App() {
   // Return to main candidate view
   const handleNavigateToCandidate = () => {
     try {
-      let basePath = window.location.pathname.replace(/\/(admin|info|knowledge|videos)\/?$/i, '');
+      let basePath = window.location.pathname.replace(/\/(admin|info|knowledge|videos|chat)\/?$/i, '');
       if (!basePath) basePath = '/';
       window.history.pushState({}, '', basePath);
       window.location.hash = '';
@@ -210,6 +222,11 @@ export default function App() {
           ) : currentRoute === 'videos' ? (
             <CouncilVideosPortal
               settings={settings}
+            />
+          ) : currentRoute === 'chat' ? (
+            <MemberChatPortal
+              settings={settings}
+              onBack={handleNavigateToCandidate}
             />
           ) : (
             <CandidateForm

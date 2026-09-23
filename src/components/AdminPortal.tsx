@@ -29,7 +29,8 @@ import {
   Bell,
   Send,
   Video,
-  Youtube
+  Youtube,
+  Radio
 } from 'lucide-react';
 import {
   Question,
@@ -62,6 +63,7 @@ import { AdminTaskSubmissionsViewer } from './AdminTaskSubmissionsViewer';
 import { AdminKnowledgeManager } from './AdminKnowledgeManager';
 import { AdminNotificationsManager } from './AdminNotificationsManager';
 import { AdminVideosManager } from './AdminVideosManager';
+import { AdminChatManager } from './AdminChatManager';
 
 interface AdminPortalProps {
   settings: SocietySettings;
@@ -87,7 +89,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   // Active tab in admin portal
   const [activeTab, setActiveTab] = useState<
-    'questions' | 'submissions' | 'task_forms' | 'task_submissions' | 'notifications' | 'videos' | 'knowledge' | 'member_intel' | 'members' | 'settings'
+    'questions' | 'submissions' | 'task_forms' | 'task_submissions' | 'notifications' | 'chat' | 'videos' | 'knowledge' | 'member_intel' | 'members' | 'settings'
   >('questions');
 
   // Preselected member for written notification dispatch
@@ -798,6 +800,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
         <button
           type="button"
+          onClick={() => setActiveTab('chat')}
+          className={`pb-3 px-3 sm:px-4 font-display text-[11px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.15em] transition-colors border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap ${
+            activeTab === 'chat'
+              ? 'border-white text-white font-bold'
+              : 'border-transparent text-white/60 hover:text-white'
+          }`}
+        >
+          <Radio className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+          <span>Direct Comms (/#/chat)</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('knowledge')}
           className={`pb-3 px-3 sm:px-4 font-display text-[11px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.15em] transition-colors border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap ${
             activeTab === 'knowledge'
@@ -1434,6 +1449,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         />
       )}
 
+      {/* TAB: DIRECT MEMBER-ADMIN CHAT (/#/chat) */}
+      {activeTab === 'chat' && <AdminChatManager members={members} />}
+
       {/* TAB: KNOWLEDGE BASE ARTICLES (/#/knowledge Full Text Editor & Media) */}
       {activeTab === 'knowledge' && <AdminKnowledgeManager />}
 
@@ -1546,6 +1564,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
                   {/* Member Actions */}
                   <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('chat');
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg border border-white/20 hover:border-white bg-black text-white font-mono text-xs transition-colors flex items-center gap-1.5"
+                      title={`Open direct communications with ${mem.alias}`}
+                    >
+                      <Radio className="w-3.5 h-3.5 text-white" />
+                      <span>Comms</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => {

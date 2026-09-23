@@ -185,6 +185,40 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["title", "youtubeUrl", "youtubeVideoId", "description", "createdAt"]
+    },
+    "chat_threads": {
+      "title": "Member-Admin Chat Thread",
+      "description": "Direct communications thread between a specific member and the Council Administration",
+      "type": "object",
+      "properties": {
+        "memberAlias": { "type": "string" },
+        "memberName": { "type": "string" },
+        "lastMessageText": { "type": "string" },
+        "lastMessageAt": { "type": "string" },
+        "lastSenderRole": { "type": "string", "enum": ["member", "admin"] },
+        "unreadForAdminCount": { "type": "number" },
+        "unreadForMemberCount": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["memberAlias", "updatedAt"]
+    },
+    "chat_messages": {
+      "title": "Chat Message",
+      "description": "Strictly text-only direct message exchanged between member and admin",
+      "type": "object",
+      "properties": {
+        "threadId": { "type": "string" },
+        "memberAlias": { "type": "string" },
+        "memberName": { "type": "string" },
+        "senderRole": { "type": "string", "enum": ["member", "admin"] },
+        "senderAlias": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "readByAdmin": { "type": "boolean" },
+        "readByMember": { "type": "boolean" }
+      },
+      "required": ["threadId", "memberAlias", "senderRole", "text", "createdAt"]
     }
   }
 }

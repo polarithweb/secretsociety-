@@ -8,7 +8,9 @@ import {
   ArrowLeft,
   MessageSquarePlus,
   Users,
-  Clock
+  Clock,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { MemberAccount, ChatThread, ChatMessage } from '../types';
 import {
@@ -26,7 +28,7 @@ interface AdminChatManagerProps {
 }
 
 export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
-  members,
+  members = [],
   preselectedMemberAlias,
   onClearPreselectedMember
 }) => {
@@ -40,6 +42,7 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
   const [threadToDelete, setThreadToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
+  const [hasError, setHasError] = useState<boolean>(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,17 +57,20 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
       setSelectedThreadId(preselectedMemberAlias);
       onClearPreselectedMember?.();
     }
-  }, [preselectedMemberAlias, onClearPreselectedMember]);
+  }, [preselectedMemberAlias]);
 
   // Subscribe to all chat threads in real time
   useEffect(() => {
-    const unsubscribe = subscribeToChatThreads((updatedThreads) => {
-      setThreads(updatedThreads);
-    });
-
-    return () => {
-      unsubscribe();
-    };
+    try {
+      const unsubscribe = subscribeToChatThreads((updatedThreads) => {
+        setThreads(Array.isArray(updatedThreads) ? updatedThreads : []);
+      });
+      return () => {
+        unsubscribe();
+      };
+    } catch (err) {
+      console.warn('Failed to subscribe to chat threads:', err);
+    }
   }, []);
 
   // Subscribe to messages of the selected thread in real time
@@ -74,20 +80,24 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
       return;
     }
 
-    const unsubscribe = subscribeToChatMessages(selectedThreadId, (msgs) => {
-      setMessages(msgs);
-      setTimeout(() => scrollToBottom('auto'), 50);
-    });
+    try {
+      const unsubscribe = subscribeToChatMessages(selectedThreadId, (msgs) => {
+        setMessages(Array.isArray(msgs) ? msgs : []);
+        setTimeout(() => scrollToBottom('auto'), 50);
+      });
 
-    markChatThreadReadByAdmin(selectedThreadId).catch(console.warn);
+      markChatThreadReadByAdmin(selectedThreadId).catch(console.warn);
 
-    return () => {
-      unsubscribe();
-    };
+      return () => {
+        unsubscribe();
+      };
+    } catch (err) {
+      console.warn('Failed to subscribe to chat messages:', err);
+    }
   }, [selectedThreadId]);
 
-  const selectedMemberAccount = members.find(
-    (m) => m.alias.toLowerCase() === (selectedThreadId || '').toLowerCase()
+  const selectedMemberAccount = (members || []).find(
+    (m) => (m?.alias || '').toLowerCase() === (selectedThreadId || '').toLowerCase()
   );
 
   const handleSendReply = async (e?: React.FormEvent) => {
@@ -95,7 +105,7 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
       e.preventDefault();
       e.stopPropagation();
     }
-    const trimmed = replyText.trim();
+    const trimmed = (replyText || '').trim();
     if (!selectedThreadId || !trimmed || isSending) return;
 
     setReplyText('');
@@ -128,7 +138,7 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
     setIsDeleting(true);
     try {
       await deleteChatThread(threadToDelete);
-      if (selectedThreadId?.toLowerCase() === threadToDelete.toLowerCase()) {
+      if ((selectedThreadId || '').toLowerCase() === threadToDelete.toLowerCase()) {
         setSelectedThreadId(null);
         setMessages([]);
       }
@@ -144,33 +154,62 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
     }
   };
 
-  const formatMessageTime = (dateIso: string) => {
+  const formatMessageTime = (dateIso?: string) => {
+    if (!dateIso) return '';
     try {
       const d = new Date(dateIso);
+      if (isNaN(d.getTime())) return '';
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch {
       return '';
     }
   };
 
-  // Filter threads by search query
-  const filteredThreads = threads.filter((t) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      t.memberAlias.toLowerCase().includes(q) ||
-      (t.memberName && t.memberName.toLowerCase().includes(q)) ||
-      t.lastMessageText.toLowerCase().includes(q)
-    );
+  // Safe Filtering of threads
+  const filteredThreads = (threads || []).filter((t) => {
+    if (!t) return false;
+    const q = (searchQuery || '').trim().toLowerCase();
+    if (!q) return true;
+    const alias = (t.memberAlias || t.id || '').toLowerCase();
+    const name = (t.memberName || '').toLowerCase();
+    const lastMsg = (t.lastMessageText || '').toLowerCase();
+    return alias.includes(q) || name.includes(q) || lastMsg.includes(q);
   });
 
-  // Filter all members by search query
-  const filteredMembers = members.filter((m) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      m.alias.toLowerCase().includes(q) ||
-      m.name.toLowerCase().includes(q)
-    );
+  // Safe Filtering of members
+  const filteredMembers = (members || []).filter((m) => {
+    if (!m) return false;
+    const q = (searchQuery || '').trim().toLowerCase();
+    if (!q) return true;
+    const alias = (m.alias || '').toLowerCase();
+    const name = (m.name || '').toLowerCase();
+    return alias.includes(q) || name.includes(q);
   });
+
+  if (hasError) {
+    return (
+      <div className="w-full bg-zinc-950 rounded-2xl border border-zinc-800 p-8 text-center text-white my-4">
+        <AlertTriangle className="w-10 h-10 text-white mx-auto mb-3" />
+        <h3 className="font-display text-base uppercase tracking-wider mb-2 font-bold">
+          Communications Channel Re-syncing
+        </h3>
+        <p className="text-xs text-zinc-400 font-mono mb-4 max-w-md mx-auto">
+          The chat sub-system encountered a display anomaly. Click below to reconnect.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setHasError(false);
+            setSelectedThreadId(null);
+          }}
+          className="px-4 py-2 bg-white text-black font-display text-xs uppercase tracking-wider font-bold rounded-xl hover:bg-zinc-200 transition inline-flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Reset Comms View</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-black rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl flex flex-col h-[750px] max-h-[85vh] selection:bg-white selection:text-black">
@@ -227,7 +266,7 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>All Members ({members.length})</span>
+              <span>All Members ({(members || []).length})</span>
             </button>
           </div>
 
@@ -262,15 +301,17 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
                 </div>
               ) : (
                 filteredThreads.map((thread) => {
-                  const isSelected = selectedThreadId?.toLowerCase() === thread.id.toLowerCase();
+                  const threadId = thread.id || thread.memberAlias || '';
+                  const isSelected = (selectedThreadId || '').toLowerCase() === threadId.toLowerCase();
                   const hasUnread = (thread.unreadForAdminCount || 0) > 0;
+                  const displayName = thread.memberAlias || thread.id || 'Member';
 
                   return (
                     <div
-                      key={thread.id}
+                      key={thread.id || thread.memberAlias}
                       onClick={() => {
-                        setSelectedThreadId(thread.id);
-                        markChatThreadReadByAdmin(thread.id).catch(console.warn);
+                        setSelectedThreadId(threadId);
+                        markChatThreadReadByAdmin(threadId).catch(console.warn);
                       }}
                       className={`p-3.5 cursor-pointer transition flex items-center gap-3 ${
                         isSelected
@@ -285,17 +326,17 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-1">
                           <span className="font-display text-xs uppercase tracking-wider text-white font-semibold truncate">
-                            {thread.memberAlias}
+                            {displayName}
                           </span>
                           <span className="text-[10px] font-mono text-zinc-500 shrink-0">
-                            {formatMessageTime(thread.lastMessageAt)}
+                            {formatMessageTime(thread.lastMessageAt || thread.updatedAt)}
                           </span>
                         </div>
                         <p className="text-xs font-body text-zinc-400 truncate">
                           {thread.lastSenderRole === 'admin' ? (
                             <span className="text-zinc-500 font-mono text-[11px] mr-1">You:</span>
                           ) : null}
-                          {thread.lastMessageText}
+                          {thread.lastMessageText || 'No messages yet'}
                         </p>
                       </div>
 
@@ -316,16 +357,17 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
                 </div>
               ) : (
                 filteredMembers.map((mem) => {
-                  const isSelected = selectedThreadId?.toLowerCase() === mem.alias.toLowerCase();
+                  const memAlias = mem.alias || '';
+                  const isSelected = (selectedThreadId || '').toLowerCase() === memAlias.toLowerCase();
                   const existingThread = threads.find(
-                    (t) => t.memberAlias.toLowerCase() === mem.alias.toLowerCase()
+                    (t) => (t.memberAlias || t.id || '').toLowerCase() === memAlias.toLowerCase()
                   );
 
                   return (
                     <div
-                      key={mem.id}
+                      key={mem.id || mem.alias}
                       onClick={() => {
-                        setSelectedThreadId(mem.alias);
+                        setSelectedThreadId(memAlias);
                       }}
                       className={`p-3.5 cursor-pointer transition flex items-center justify-between gap-3 ${
                         isSelected
@@ -341,9 +383,11 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
                           <span className="font-display text-xs uppercase tracking-wider text-white font-semibold block truncate">
                             {mem.alias}
                           </span>
-                          <span className="text-[11px] font-body text-zinc-400 block truncate">
-                            {mem.name}
-                          </span>
+                          {mem.name && (
+                            <span className="text-[11px] font-body text-zinc-400 block truncate">
+                              {mem.name}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -430,6 +474,7 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
                   </div>
                 ) : (
                   messages.map((msg) => {
+                    if (!msg || !msg.id) return null;
                     const isAdmin = msg.senderRole === 'admin';
                     return (
                       <div
@@ -444,7 +489,7 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
                           }`}
                         >
                           <p className={`whitespace-pre-wrap select-text font-body ${isAdmin ? 'text-black font-medium' : 'text-zinc-100'}`}>
-                            {msg.text}
+                            {msg.text || ''}
                           </p>
                           <div
                             className={`mt-1 text-[10px] font-mono select-none flex ${
@@ -475,7 +520,7 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
                   />
                   <button
                     type="submit"
-                    disabled={isSending || !replyText.trim()}
+                    disabled={isSending || !(replyText || '').trim()}
                     className="w-12 h-12 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black flex items-center justify-center shrink-0 transition disabled:opacity-40 cursor-pointer shadow-lg"
                   >
                     <Send className="w-5 h-5 ml-0.5 text-black" />

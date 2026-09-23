@@ -11,15 +11,22 @@ import {
   query,
   orderBy,
   where,
-  deleteDoc
+  deleteDoc,
+  updateDoc
 } from 'firebase/firestore';
 import primaryFirebaseConfig from '../../firebase-applet-config.json';
 import { ChatMessage, ChatThread, ChatFirebaseConfig } from '../types';
 
 const CHAT_APP_NAME = 'SecretSocietyChatApp';
 const CHAT_CONFIG_KEY = 'secretsociety_chat_custom_firebase_config';
-const CHAT_LOCAL_MESSAGES_KEY = 'secretsociety_local_chat_messages';
-const CHAT_LOCAL_THREADS_KEY = 'secretsociety_local_chat_threads';
+const CHAT_LOCAL_MESSAGES_KEY = 'secretsociety_local_chat_messages_v3';
+const CHAT_LOCAL_THREADS_KEY = 'secretsociety_local_chat_threads_v3';
+
+// Clear legacy cached chats from prior sessions
+try {
+  localStorage.removeItem('secretsociety_local_chat_messages');
+  localStorage.removeItem('secretsociety_local_chat_threads');
+} catch {}
 
 /**
  * Retrieve active Chat Firebase configuration (custom project if provided by Admin, or default chat config)
@@ -268,13 +275,21 @@ export function subscribeToChatMessages(
   threadId: string,
   callback: (messages: ChatMessage[]) => void
 ): () => void {
-  const normThreadId = threadId.trim();
+  const normThreadId = (threadId || '').trim();
+  if (!normThreadId) {
+    callback([]);
+    return () => {};
+  }
 
   // Immediately emit current in-memory messages for this thread
   const filterAndSort = () => {
     const list = Array.from(inMemoryMessages.values())
-      .filter((m) => m.threadId.toLowerCase() === normThreadId.toLowerCase())
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      .filter((m) => (m.threadId || '').toLowerCase() === normThreadId.toLowerCase())
+      .sort((a, b) => {
+        const timeA = new Date(a.createdAt || 0).getTime() || 0;
+        const timeB = new Date(b.createdAt || 0).getTime() || 0;
+        return timeA - timeB;
+      });
     return list;
   };
 
@@ -292,14 +307,26 @@ export function subscribeToChatMessages(
       (snap) => {
         // Clear all cached messages for this thread to reflect deletions in real time
         Array.from(inMemoryMessages.entries()).forEach(([id, m]) => {
-          if (m.threadId.toLowerCase() === normThreadId.toLowerCase()) {
+          if ((m.threadId || '').toLowerCase() === normThreadId.toLowerCase()) {
             inMemoryMessages.delete(id);
           }
         });
 
-        // Insert currently existing documents from Firestore
+        // Insert currently existing documents from Firestore safely
         snap.forEach((d) => {
-          const msg = { ...(d.data() as ChatMessage), id: d.id };
+          const raw = (d.data() || {}) as Partial<ChatMessage>;
+          const msg: ChatMessage = {
+            id: d.id,
+            threadId: raw.threadId || normThreadId,
+            memberAlias: raw.memberAlias || normThreadId,
+            memberName: raw.memberName || '',
+            senderRole: raw.senderRole || 'member',
+            senderAlias: raw.senderAlias || raw.memberAlias || normThreadId,
+            text: raw.text || '',
+            createdAt: raw.createdAt || new Date().toISOString(),
+            readByAdmin: !!raw.readByAdmin,
+            readByMember: !!raw.readByMember
+          };
           inMemoryMessages.set(d.id, msg);
         });
 
@@ -325,7 +352,11 @@ export function subscribeToChatMessages(
 export function subscribeToChatThreads(callback: (threads: ChatThread[]) => void): () => void {
   const getSortedThreads = () => {
     const list = Array.from(inMemoryThreads.values());
-    list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    list.sort((a, b) => {
+      const timeA = new Date(a.updatedAt || a.lastMessageAt || 0).getTime() || 0;
+      const timeB = new Date(b.updatedAt || b.lastMessageAt || 0).getTime() || 0;
+      return timeB - timeA;
+    });
     return list;
   };
 
@@ -338,7 +369,19 @@ export function subscribeToChatThreads(callback: (threads: ChatThread[]) => void
         // Clear existing inMemoryThreads to reflect deleted threads in real-time
         inMemoryThreads.clear();
         snap.forEach((d) => {
-          const t = { ...(d.data() as ChatThread), id: d.id };
+          const raw = (d.data() || {}) as Partial<ChatThread>;
+          const t: ChatThread = {
+            id: d.id,
+            memberAlias: raw.memberAlias || d.id || '',
+            memberName: raw.memberName || '',
+            lastMessageText: raw.lastMessageText || '',
+            lastMessageAt: raw.lastMessageAt || raw.updatedAt || raw.createdAt || new Date().toISOString(),
+            lastSenderRole: raw.lastSenderRole || 'member',
+            unreadForAdminCount: typeof raw.unreadForAdminCount === 'number' ? raw.unreadForAdminCount : 0,
+            unreadForMemberCount: typeof raw.unreadForMemberCount === 'number' ? raw.unreadForMemberCount : 0,
+            createdAt: raw.createdAt || new Date().toISOString(),
+            updatedAt: raw.updatedAt || raw.createdAt || new Date().toISOString()
+          };
           inMemoryThreads.set(d.id, t);
         });
         persistLocalData();
@@ -361,7 +404,9 @@ export function subscribeToChatThreads(callback: (threads: ChatThread[]) => void
  * Mark messages in a thread as read by Admin
  */
 export async function markChatThreadReadByAdmin(threadId: string): Promise<void> {
-  const normId = threadId.trim();
+  const normId = (threadId || '').trim();
+  if (!normId) return;
+
   const thread = inMemoryThreads.get(normId);
   if (thread) {
     thread.unreadForAdminCount = 0;
@@ -370,7 +415,7 @@ export async function markChatThreadReadByAdmin(threadId: string): Promise<void>
 
   // Update in-memory messages
   inMemoryMessages.forEach((m) => {
-    if (m.threadId.toLowerCase() === normId.toLowerCase() && !m.readByAdmin) {
+    if ((m.threadId || '').toLowerCase() === normId.toLowerCase() && !m.readByAdmin) {
       m.readByAdmin = true;
     }
   });
@@ -379,9 +424,9 @@ export async function markChatThreadReadByAdmin(threadId: string): Promise<void>
 
   try {
     const threadRef = doc(CHAT_THREADS_COLLECTION, normId);
-    await setDoc(threadRef, { unreadForAdminCount: 0 }, { merge: true });
+    await updateDoc(threadRef, { unreadForAdminCount: 0 });
   } catch (err) {
-    console.warn('Mark thread read by admin warning:', err);
+    // If doc does not exist yet, ignore to avoid creating malformed doc
   }
 }
 
@@ -389,7 +434,9 @@ export async function markChatThreadReadByAdmin(threadId: string): Promise<void>
  * Mark messages in a thread as read by Member
  */
 export async function markChatThreadReadByMember(threadId: string): Promise<void> {
-  const normId = threadId.trim();
+  const normId = (threadId || '').trim();
+  if (!normId) return;
+
   const thread = inMemoryThreads.get(normId);
   if (thread) {
     thread.unreadForMemberCount = 0;
@@ -397,7 +444,7 @@ export async function markChatThreadReadByMember(threadId: string): Promise<void
   }
 
   inMemoryMessages.forEach((m) => {
-    if (m.threadId.toLowerCase() === normId.toLowerCase() && !m.readByMember) {
+    if ((m.threadId || '').toLowerCase() === normId.toLowerCase() && !m.readByMember) {
       m.readByMember = true;
     }
   });
@@ -406,9 +453,9 @@ export async function markChatThreadReadByMember(threadId: string): Promise<void
 
   try {
     const threadRef = doc(CHAT_THREADS_COLLECTION, normId);
-    await setDoc(threadRef, { unreadForMemberCount: 0 }, { merge: true });
+    await updateDoc(threadRef, { unreadForMemberCount: 0 });
   } catch (err) {
-    console.warn('Mark thread read by member warning:', err);
+    // If doc does not exist yet, ignore to avoid creating malformed doc
   }
 }
 

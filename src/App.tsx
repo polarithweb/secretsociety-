@@ -15,6 +15,7 @@ import { MemberInfoPortal } from './components/MemberInfoPortal';
 import { KnowledgePortal } from './components/KnowledgePortal';
 import { CouncilVideosPortal } from './components/CouncilVideosPortal';
 import { MemberChatPortal } from './components/MemberChatPortal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge' | 'videos' | 'chat';
 
@@ -196,44 +197,46 @@ export default function App() {
       {/* Main Content Area */}
       <div className="relative z-10 min-h-screen flex flex-col justify-between w-full max-w-full overflow-x-hidden">
         <main className="flex-1 w-full max-w-full overflow-x-hidden">
-          {isLoading ? (
-            <div className="min-h-[80vh] flex flex-col items-center justify-center gap-3">
-              <div className="w-8 h-8 rounded-full border-2 border-white border-t-transparent animate-spin" />
-              <div className="text-xs font-mono uppercase tracking-widest text-white/80">
-                Loading...
+          <ErrorBoundary>
+            {isLoading ? (
+              <div className="min-h-[80vh] flex flex-col items-center justify-center gap-3">
+                <div className="w-8 h-8 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                <div className="text-xs font-mono uppercase tracking-widest text-white/80">
+                  Loading...
+                </div>
               </div>
-            </div>
-          ) : currentRoute === 'admin' ? (
-            <AdminPortal
-              settings={settings}
-              questions={questions}
-              submissions={submissions}
-              onNavigateToCandidate={handleNavigateToCandidate}
-              onRefreshData={handleRefreshData}
-            />
-          ) : currentRoute === 'info' ? (
-            <MemberInfoPortal
-              settings={settings}
-            />
-          ) : currentRoute === 'knowledge' ? (
-            <KnowledgePortal
-              settings={settings}
-            />
-          ) : currentRoute === 'videos' ? (
-            <CouncilVideosPortal
-              settings={settings}
-            />
-          ) : currentRoute === 'chat' ? (
-            <MemberChatPortal
-              settings={settings}
-              onBack={handleNavigateToCandidate}
-            />
-          ) : (
-            <CandidateForm
-              settings={settings}
-              questions={questions}
-            />
-          )}
+            ) : currentRoute === 'admin' ? (
+              <AdminPortal
+                settings={settings}
+                questions={questions}
+                submissions={submissions}
+                onNavigateToCandidate={handleNavigateToCandidate}
+                onRefreshData={handleRefreshData}
+              />
+            ) : currentRoute === 'info' ? (
+              <MemberInfoPortal
+                settings={settings}
+              />
+            ) : currentRoute === 'knowledge' ? (
+              <KnowledgePortal
+                settings={settings}
+              />
+            ) : currentRoute === 'videos' ? (
+              <CouncilVideosPortal
+                settings={settings}
+              />
+            ) : currentRoute === 'chat' ? (
+              <MemberChatPortal
+                settings={settings}
+                onBack={handleNavigateToCandidate}
+              />
+            ) : (
+              <CandidateForm
+                settings={settings}
+                questions={questions}
+              />
+            )}
+          </ErrorBoundary>
         </main>
       </div>
     </div>

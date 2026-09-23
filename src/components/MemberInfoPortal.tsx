@@ -26,7 +26,8 @@ import {
   Bell,
   AlertTriangle,
   Youtube,
-  Image as ImageIcon
+  Image as ImageIcon,
+  X
 } from 'lucide-react';
 import {
   SocietySettings,
@@ -1151,7 +1152,7 @@ export const MemberInfoPortal: React.FC<MemberInfoPortalProps> = ({
                 onClick={() => setActiveFillingForm(null)}
                 className="p-1.5 rounded-lg border border-white/20 text-white/60 hover:text-white transition-colors shrink-0"
               >
-                ✕
+                <X className="w-4 h-4 text-white" />
               </button>
             </div>
 

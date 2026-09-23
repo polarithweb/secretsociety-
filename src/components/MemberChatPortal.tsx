@@ -81,8 +81,8 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
       const accounts = await getMemberAccounts();
       const matched = accounts.find(
         (acc) =>
-          acc.alias.trim().toLowerCase() === cleanAlias.toLowerCase() &&
-          acc.password.trim() === cleanPass
+          (acc.alias || '').trim().toLowerCase() === cleanAlias.toLowerCase() &&
+          (acc.password || '').trim() === cleanPass
       );
 
       if (!matched) {

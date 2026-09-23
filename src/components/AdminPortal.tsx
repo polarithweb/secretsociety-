@@ -64,6 +64,7 @@ import { AdminKnowledgeManager } from './AdminKnowledgeManager';
 import { AdminNotificationsManager } from './AdminNotificationsManager';
 import { AdminVideosManager } from './AdminVideosManager';
 import { AdminChatManager } from './AdminChatManager';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface AdminPortalProps {
   settings: SocietySettings;
@@ -1456,11 +1457,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
       {/* TAB: DIRECT MEMBER-ADMIN CHAT (/#/chat) */}
       {activeTab === 'chat' && (
-        <AdminChatManager
-          members={members}
-          preselectedMemberAlias={preselectedChatMemberAlias}
-          onClearPreselectedMember={() => setPreselectedChatMemberAlias(null)}
-        />
+        <ErrorBoundary fallbackTitle="Direct Comms Console">
+          <AdminChatManager
+            members={members}
+            preselectedMemberAlias={preselectedChatMemberAlias}
+            onClearPreselectedMember={() => setPreselectedChatMemberAlias(null)}
+          />
+        </ErrorBoundary>
       )}
 
       {/* TAB: KNOWLEDGE BASE ARTICLES (/#/knowledge Full Text Editor & Media) */}

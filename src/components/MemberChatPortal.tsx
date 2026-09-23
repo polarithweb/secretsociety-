@@ -3,7 +3,6 @@ import {
   Send,
   LogOut,
   Shield,
-  CheckCheck,
   Lock
 } from 'lucide-react';
 import { SocietySettings, MemberAccount, ChatMessage } from '../types';
@@ -40,6 +39,7 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
@@ -121,10 +121,13 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!currentMember || !inputText.trim() || isSending) return;
-
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     const textToSend = inputText.trim();
+    if (!currentMember || !textToSend || isSending) return;
+
     setInputText('');
     setIsSending(true);
 
@@ -138,8 +141,10 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
         text: textToSend
       });
       setTimeout(() => scrollToBottom('smooth'), 50);
+      inputRef.current?.focus();
     } catch (err) {
       console.error('Failed to send message:', err);
+      setInputText(textToSend);
     } finally {
       setIsSending(false);
     }
@@ -161,22 +166,25 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
     }
   };
 
-  // 1. Clean Minimal Login View
+  // 1. Clean Minimal Login View (Black & White Luxury Theme)
   if (!currentMember) {
     return (
-      <div className="fixed inset-0 bg-[#111b21] text-[#e9edef] flex items-center justify-center p-4 selection:bg-[#00a884] selection:text-white">
-        <div className="w-full max-w-sm bg-[#202c33] rounded-2xl p-6 sm:p-8 shadow-2xl border border-[#2a3942]">
+      <div className="fixed inset-0 bg-black text-white flex items-center justify-center p-4 selection:bg-white selection:text-black">
+        <div className="w-full max-w-sm bg-zinc-950 rounded-2xl p-8 sm:p-9 shadow-2xl border border-zinc-800">
           <div className="flex flex-col items-center mb-6">
-            <div className="w-14 h-14 rounded-full bg-[#00a884]/20 border border-[#00a884]/40 flex items-center justify-center text-[#00a884] mb-3">
-              <Shield className="w-7 h-7" />
+            <div className="w-16 h-16 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white mb-4 shadow-inner">
+              <Shield className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-xl font-semibold text-white tracking-wide">
-              Chat Login
+            <h1 className="text-lg font-display uppercase tracking-[0.25em] font-bold text-white text-center">
+              Member Portal
             </h1>
+            <p className="text-xs font-editorial italic text-zinc-400 text-center mt-1">
+              Direct Secure Channel
+            </p>
           </div>
 
           {authError && (
-            <div className="mb-4 p-2.5 rounded-lg bg-red-950/70 border border-red-500/40 text-red-200 text-xs text-center font-mono">
+            <div className="mb-4 p-3 rounded-xl bg-zinc-900 border border-red-500/40 text-red-300 text-xs text-center font-mono">
               {authError}
             </div>
           )}
@@ -190,7 +198,7 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
                 value={aliasInput}
                 onChange={(e) => setAliasInput(e.target.value)}
                 placeholder="Alias"
-                className="w-full px-4 py-3 rounded-lg bg-[#2a3942] border border-transparent focus:border-[#00a884] text-white text-sm placeholder-[#8696a0] focus:outline-none transition"
+                className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 focus:border-white text-white text-sm font-body placeholder-zinc-500 focus:outline-none transition shadow-inner"
               />
             </div>
 
@@ -201,16 +209,16 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 placeholder="Password"
-                className="w-full px-4 py-3 rounded-lg bg-[#2a3942] border border-transparent focus:border-[#00a884] text-white text-sm placeholder-[#8696a0] focus:outline-none transition"
+                className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 focus:border-white text-white text-sm font-body placeholder-zinc-500 focus:outline-none transition shadow-inner"
               />
             </div>
 
             <button
               type="submit"
               disabled={isAuthenticating}
-              className="w-full py-3 px-4 rounded-lg bg-[#00a884] hover:bg-[#02906f] active:bg-[#007a5e] text-white font-medium text-sm transition shadow cursor-pointer disabled:opacity-50 mt-2"
+              className="w-full py-3.5 px-4 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black font-display text-xs tracking-[0.2em] uppercase font-bold transition shadow-lg cursor-pointer disabled:opacity-50 mt-2"
             >
-              {isAuthenticating ? 'Connecting...' : 'Login'}
+              {isAuthenticating ? 'Authenticating...' : 'Enter Channel'}
             </button>
           </form>
         </div>
@@ -218,13 +226,13 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
     );
   }
 
-  // 2. Clean WhatsApp Chat View
+  // 2. Chat View (Black & White Luxury Theme - Zero Ticks, No Green)
   return (
-    <div className="fixed inset-0 bg-[#0b141a] text-[#e9edef] flex flex-col justify-between overflow-hidden">
-      {/* WhatsApp Top Bar */}
-      <header className="h-16 px-4 bg-[#202c33] border-b border-[#222d34] flex items-center justify-between z-20 shrink-0 select-none shadow-md">
+    <div className="fixed inset-0 bg-black text-white flex flex-col justify-between overflow-hidden selection:bg-white selection:text-black">
+      {/* Top Header */}
+      <header className="h-16 px-5 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between z-20 shrink-0 select-none shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#374248] flex items-center justify-center text-[#aebac1] overflow-hidden shrink-0">
+          <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 overflow-hidden shrink-0">
             {settings.sigilImage ? (
               <img
                 src={settings.sigilImage}
@@ -232,38 +240,35 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
                 className="w-full h-full object-cover"
               />
             ) : (
-              <Shield className="w-5 h-5 text-[#00a884]" />
+              <Shield className="w-5 h-5 text-white" />
             )}
           </div>
           <div className="flex flex-col">
-            <span className="font-medium text-white text-base leading-tight">Admin</span>
-            <span className="text-xs text-[#00a884] font-normal leading-tight">online</span>
+            <span className="font-display font-semibold text-white text-sm tracking-[0.15em] uppercase">
+              Admin
+            </span>
+            <span className="font-mono text-[10px] tracking-wider text-zinc-400 uppercase">
+              Secure Direct Comms
+            </span>
           </div>
         </div>
 
         <button
           onClick={handleLogout}
           title="Logout"
-          className="p-2 rounded-full text-[#aebac1] hover:text-white hover:bg-[#374248] transition cursor-pointer"
+          className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 transition cursor-pointer"
         >
           <LogOut className="w-5 h-5" />
         </button>
       </header>
 
-      {/* WhatsApp Message Body */}
-      <div
-        className="flex-1 overflow-y-auto p-4 space-y-2 relative"
-        style={{
-          backgroundColor: '#0b141a',
-          backgroundImage:
-            'radial-gradient(circle at 50% 50%, rgba(17, 27, 33, 0.6) 0%, rgba(11, 20, 26, 0.95) 100%)'
-        }}
-      >
-        {/* Subtle lock notice like WhatsApp */}
-        <div className="flex justify-center my-3">
-          <div className="px-3 py-1.5 rounded-lg bg-[#182229] border border-[#222d34] text-[#ffd279] text-[11px] font-sans flex items-center gap-1.5 shadow-sm text-center max-w-xs">
-            <Lock className="w-3 h-3 text-[#ffd279] shrink-0" />
-            <span>Messages are direct and private with Admin.</span>
+      {/* Message Stream */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 relative bg-black">
+        {/* Subtle Security Pill */}
+        <div className="flex justify-center my-2">
+          <div className="px-3.5 py-1.5 rounded-full bg-zinc-950 border border-zinc-800 text-zinc-400 font-mono text-[10px] tracking-wider flex items-center gap-2 shadow-sm text-center uppercase">
+            <Lock className="w-3 h-3 text-zinc-300 shrink-0" />
+            <span>Encrypted Direct Text Channel</span>
           </div>
         </div>
 
@@ -275,26 +280,22 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
               className={`flex w-full ${isAdmin ? 'justify-start' : 'justify-end'}`}
             >
               <div
-                className={`max-w-[82%] sm:max-w-[65%] px-3.5 py-2 rounded-lg text-[14px] leading-relaxed break-words shadow relative ${
+                className={`max-w-[82%] sm:max-w-[65%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed break-words shadow-md relative ${
                   isAdmin
-                    ? 'bg-[#202c33] text-[#e9edef] rounded-tl-none'
-                    : 'bg-[#005c4b] text-[#e9edef] rounded-tr-none'
+                    ? 'bg-zinc-900 border border-zinc-800 text-white rounded-tl-sm'
+                    : 'bg-white text-black rounded-tr-sm'
                 }`}
               >
-                <p className="whitespace-pre-wrap select-text">{msg.text}</p>
+                <p className={`whitespace-pre-wrap select-text font-body ${isAdmin ? 'text-zinc-100' : 'text-black font-medium'}`}>
+                  {msg.text}
+                </p>
+                {/* Clean timestamp with zero tick marks */}
                 <div
-                  className={`flex items-center gap-1 justify-end mt-1 text-[11px] select-none ${
-                    isAdmin ? 'text-[#8696a0]' : 'text-[#8696a0]'
+                  className={`mt-1 text-[10px] font-mono select-none flex ${
+                    isAdmin ? 'justify-start text-zinc-400' : 'justify-end text-zinc-600 font-semibold'
                   }`}
                 >
                   <span>{formatMessageTime(msg.createdAt)}</span>
-                  {!isAdmin && (
-                    <CheckCheck
-                      className={`w-3.5 h-3.5 ${
-                        msg.readByAdmin ? 'text-[#53bdeb]' : 'text-[#8696a0]'
-                      }`}
-                    />
-                  )}
                 </div>
               </div>
             </div>
@@ -303,23 +304,24 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
         <div ref={messagesEndRef} />
       </div>
 
-      {/* WhatsApp Bottom Input Bar: Only Text Input + Single Send Button */}
-      <footer className="p-2 sm:p-3 bg-[#202c33] border-t border-[#222d34] flex items-center gap-2 z-20 shrink-0">
+      {/* Bottom Input Bar */}
+      <footer className="p-3 sm:p-4 bg-zinc-950 border-t border-zinc-800 flex items-center gap-2 z-20 shrink-0">
         <form onSubmit={handleSendMessage} className="flex-1 flex items-center gap-2">
           <input
+            ref={inputRef}
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message"
-            className="flex-1 px-4 py-2.5 rounded-lg bg-[#2a3942] text-white text-sm placeholder-[#8696a0] focus:outline-none"
+            placeholder="Type a message..."
+            className="flex-1 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-sm font-body placeholder-zinc-500 focus:outline-none focus:border-white transition"
           />
           <button
             type="submit"
             disabled={isSending || !inputText.trim()}
-            className="w-11 h-11 rounded-full bg-[#00a884] hover:bg-[#02906f] active:bg-[#007a5e] text-white flex items-center justify-center shrink-0 transition disabled:opacity-40 cursor-pointer shadow-md"
+            className="w-12 h-12 rounded-xl bg-white hover:bg-zinc-200 active:bg-zinc-300 text-black flex items-center justify-center shrink-0 transition disabled:opacity-40 cursor-pointer shadow-lg"
           >
-            <Send className="w-5 h-5 ml-0.5" />
+            <Send className="w-5 h-5 ml-0.5 text-black" />
           </button>
         </form>
       </footer>

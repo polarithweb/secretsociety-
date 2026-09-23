@@ -94,6 +94,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   // Preselected member for written notification dispatch
   const [preselectedNoticeMemberAlias, setPreselectedNoticeMemberAlias] = useState<string | null>(null);
+  // Preselected member for direct comms chat
+  const [preselectedChatMemberAlias, setPreselectedChatMemberAlias] = useState<string | null>(null);
 
   // Member Intelligence Entries State
   const [memberInfoEntries, setMemberInfoEntries] = useState<MemberInfoEntry[]>([]);
@@ -800,7 +802,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
         <button
           type="button"
-          onClick={() => setActiveTab('chat')}
+          onClick={() => {
+            setPreselectedChatMemberAlias(null);
+            setActiveTab('chat');
+          }}
           className={`pb-3 px-3 sm:px-4 font-display text-[11px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.15em] transition-colors border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap ${
             activeTab === 'chat'
               ? 'border-white text-white font-bold'
@@ -1450,7 +1455,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       )}
 
       {/* TAB: DIRECT MEMBER-ADMIN CHAT (/#/chat) */}
-      {activeTab === 'chat' && <AdminChatManager members={members} />}
+      {activeTab === 'chat' && (
+        <AdminChatManager
+          members={members}
+          preselectedMemberAlias={preselectedChatMemberAlias}
+          onClearPreselectedMember={() => setPreselectedChatMemberAlias(null)}
+        />
+      )}
 
       {/* TAB: KNOWLEDGE BASE ARTICLES (/#/knowledge Full Text Editor & Media) */}
       {activeTab === 'knowledge' && <AdminKnowledgeManager />}
@@ -1567,6 +1578,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        setPreselectedChatMemberAlias(mem.alias);
                         setActiveTab('chat');
                       }}
                       className="px-2.5 py-1.5 rounded-lg border border-white/20 hover:border-white bg-black text-white font-mono text-xs transition-colors flex items-center gap-1.5"

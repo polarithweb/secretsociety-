@@ -272,35 +272,44 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
           </div>
         </div>
 
-        {messages.map((msg) => {
-          const isAdmin = msg.senderRole === 'admin';
-          return (
-            <div
-              key={msg.id}
-              className={`flex w-full ${isAdmin ? 'justify-start' : 'justify-end'}`}
-            >
+        {messages.length === 0 ? (
+          <div className="py-20 text-center text-zinc-500 font-mono text-xs space-y-2">
+            <p>No messages in this channel.</p>
+            <p className="text-[11px] text-zinc-600">
+              Type below to communicate directly with Admin.
+            </p>
+          </div>
+        ) : (
+          messages.map((msg) => {
+            const isAdmin = msg.senderRole === 'admin';
+            return (
               <div
-                className={`max-w-[82%] sm:max-w-[65%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed break-words shadow-md relative ${
-                  isAdmin
-                    ? 'bg-zinc-900 border border-zinc-800 text-white rounded-tl-sm'
-                    : 'bg-white text-black rounded-tr-sm'
-                }`}
+                key={msg.id}
+                className={`flex w-full ${isAdmin ? 'justify-start' : 'justify-end'}`}
               >
-                <p className={`whitespace-pre-wrap select-text font-body ${isAdmin ? 'text-zinc-100' : 'text-black font-medium'}`}>
-                  {msg.text}
-                </p>
-                {/* Clean timestamp with zero tick marks */}
                 <div
-                  className={`mt-1 text-[10px] font-mono select-none flex ${
-                    isAdmin ? 'justify-start text-zinc-400' : 'justify-end text-zinc-600 font-semibold'
+                  className={`max-w-[82%] sm:max-w-[65%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed break-words shadow-md relative ${
+                    isAdmin
+                      ? 'bg-zinc-900 border border-zinc-800 text-white rounded-tl-sm'
+                      : 'bg-white text-black rounded-tr-sm'
                   }`}
                 >
-                  <span>{formatMessageTime(msg.createdAt)}</span>
+                  <p className={`whitespace-pre-wrap select-text font-body ${isAdmin ? 'text-zinc-100' : 'text-black font-medium'}`}>
+                    {msg.text}
+                  </p>
+                  {/* Clean timestamp with zero tick marks */}
+                  <div
+                    className={`mt-1 text-[10px] font-mono select-none flex ${
+                      isAdmin ? 'justify-start text-zinc-400' : 'justify-end text-zinc-600 font-semibold'
+                    }`}
+                  >
+                    <span>{formatMessageTime(msg.createdAt)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
         <div ref={messagesEndRef} />
       </div>
 
@@ -312,9 +321,9 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
+            disabled={isSending}
             placeholder="Type a message..."
-            className="flex-1 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-sm font-body placeholder-zinc-500 focus:outline-none focus:border-white transition"
+            className="flex-1 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-sm font-body placeholder-zinc-500 focus:outline-none focus:border-white transition disabled:opacity-50"
           />
           <button
             type="submit"

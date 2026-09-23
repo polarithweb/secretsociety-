@@ -268,10 +268,12 @@ export function subscribeToChatMessages(
   threadId: string,
   callback: (messages: ChatMessage[]) => void
 ): () => void {
+  const normThreadId = threadId.trim();
+
   // Immediately emit current in-memory messages for this thread
   const filterAndSort = () => {
     const list = Array.from(inMemoryMessages.values())
-      .filter((m) => m.threadId === threadId)
+      .filter((m) => m.threadId.toLowerCase() === normThreadId.toLowerCase())
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     return list;
   };
@@ -279,19 +281,28 @@ export function subscribeToChatMessages(
   callback(filterAndSort());
 
   try {
-    // Note: Querying on threadId without orderBy avoids requiring a Firestore composite index
+    // Querying on threadId without orderBy avoids requiring a Firestore composite index
     const q = query(
       CHAT_MESSAGES_COLLECTION,
-      where('threadId', '==', threadId)
+      where('threadId', '==', normThreadId)
     );
 
     const unsubscribe = onSnapshot(
       q,
       (snap) => {
+        // Clear all cached messages for this thread to reflect deletions in real time
+        Array.from(inMemoryMessages.entries()).forEach(([id, m]) => {
+          if (m.threadId.toLowerCase() === normThreadId.toLowerCase()) {
+            inMemoryMessages.delete(id);
+          }
+        });
+
+        // Insert currently existing documents from Firestore
         snap.forEach((d) => {
           const msg = { ...(d.data() as ChatMessage), id: d.id };
           inMemoryMessages.set(d.id, msg);
         });
+
         persistLocalData();
         callback(filterAndSort());
       },
@@ -324,6 +335,8 @@ export function subscribeToChatThreads(callback: (threads: ChatThread[]) => void
     const unsubscribe = onSnapshot(
       CHAT_THREADS_COLLECTION,
       (snap) => {
+        // Clear existing inMemoryThreads to reflect deleted threads in real-time
+        inMemoryThreads.clear();
         snap.forEach((d) => {
           const t = { ...(d.data() as ChatThread), id: d.id };
           inMemoryThreads.set(d.id, t);
@@ -348,15 +361,16 @@ export function subscribeToChatThreads(callback: (threads: ChatThread[]) => void
  * Mark messages in a thread as read by Admin
  */
 export async function markChatThreadReadByAdmin(threadId: string): Promise<void> {
-  const thread = inMemoryThreads.get(threadId);
+  const normId = threadId.trim();
+  const thread = inMemoryThreads.get(normId);
   if (thread) {
     thread.unreadForAdminCount = 0;
-    inMemoryThreads.set(threadId, thread);
+    inMemoryThreads.set(normId, thread);
   }
 
   // Update in-memory messages
   inMemoryMessages.forEach((m) => {
-    if (m.threadId === threadId && !m.readByAdmin) {
+    if (m.threadId.toLowerCase() === normId.toLowerCase() && !m.readByAdmin) {
       m.readByAdmin = true;
     }
   });
@@ -364,7 +378,7 @@ export async function markChatThreadReadByAdmin(threadId: string): Promise<void>
   persistLocalData();
 
   try {
-    const threadRef = doc(CHAT_THREADS_COLLECTION, threadId);
+    const threadRef = doc(CHAT_THREADS_COLLECTION, normId);
     await setDoc(threadRef, { unreadForAdminCount: 0 }, { merge: true });
   } catch (err) {
     console.warn('Mark thread read by admin warning:', err);
@@ -375,14 +389,15 @@ export async function markChatThreadReadByAdmin(threadId: string): Promise<void>
  * Mark messages in a thread as read by Member
  */
 export async function markChatThreadReadByMember(threadId: string): Promise<void> {
-  const thread = inMemoryThreads.get(threadId);
+  const normId = threadId.trim();
+  const thread = inMemoryThreads.get(normId);
   if (thread) {
     thread.unreadForMemberCount = 0;
-    inMemoryThreads.set(threadId, thread);
+    inMemoryThreads.set(normId, thread);
   }
 
   inMemoryMessages.forEach((m) => {
-    if (m.threadId === threadId && !m.readByMember) {
+    if (m.threadId.toLowerCase() === normId.toLowerCase() && !m.readByMember) {
       m.readByMember = true;
     }
   });
@@ -390,7 +405,7 @@ export async function markChatThreadReadByMember(threadId: string): Promise<void
   persistLocalData();
 
   try {
-    const threadRef = doc(CHAT_THREADS_COLLECTION, threadId);
+    const threadRef = doc(CHAT_THREADS_COLLECTION, normId);
     await setDoc(threadRef, { unreadForMemberCount: 0 }, { merge: true });
   } catch (err) {
     console.warn('Mark thread read by member warning:', err);
@@ -398,27 +413,44 @@ export async function markChatThreadReadByMember(threadId: string): Promise<void
 }
 
 /**
- * Delete a chat thread and all its associated messages
+ * Delete a chat thread and all its associated messages permanently from everywhere
  */
 export async function deleteChatThread(threadId: string): Promise<void> {
-  inMemoryThreads.delete(threadId);
+  const normThreadId = threadId.trim();
+
+  // 1. Instantly delete from local memory and persist
+  inMemoryThreads.delete(normThreadId);
+  Array.from(inMemoryThreads.keys()).forEach((k) => {
+    if (k.toLowerCase() === normThreadId.toLowerCase()) {
+      inMemoryThreads.delete(k);
+    }
+  });
+
   Array.from(inMemoryMessages.entries()).forEach(([id, msg]) => {
-    if (msg.threadId === threadId) {
+    if (msg.threadId.toLowerCase() === normThreadId.toLowerCase()) {
       inMemoryMessages.delete(id);
     }
   });
   persistLocalData();
 
+  // 2. Permanently delete all messages and thread document from Firestore
   try {
-    const threadRef = doc(CHAT_THREADS_COLLECTION, threadId);
-    await deleteDoc(threadRef);
-
-    // Delete messages from remote collection
-    const q = query(CHAT_MESSAGES_COLLECTION, where('threadId', '==', threadId));
+    const q = query(CHAT_MESSAGES_COLLECTION, where('threadId', '==', normThreadId));
     const snap = await getDocs(q);
-    snap.forEach(async (d) => {
-      await deleteDoc(d.ref);
-    });
+    const deletePromises = snap.docs.map((docSnap) => deleteDoc(docSnap.ref));
+    await Promise.all(deletePromises);
+
+    // If casing differed, also delete lowercase documents
+    if (normThreadId !== normThreadId.toLowerCase()) {
+      const qLower = query(CHAT_MESSAGES_COLLECTION, where('threadId', '==', normThreadId.toLowerCase()));
+      const snapLower = await getDocs(qLower);
+      const deleteLower = snapLower.docs.map((d) => deleteDoc(d.ref));
+      await Promise.all(deleteLower);
+    }
+
+    // Delete the thread document itself
+    const threadRef = doc(CHAT_THREADS_COLLECTION, normThreadId);
+    await deleteDoc(threadRef);
   } catch (err) {
     console.warn('Error deleting chat thread from Firestore:', err);
   }

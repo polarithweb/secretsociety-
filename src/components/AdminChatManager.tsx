@@ -5,7 +5,10 @@ import {
   Search,
   Trash2,
   Lock,
-  ArrowLeft
+  ArrowLeft,
+  MessageSquarePlus,
+  Users,
+  Clock
 } from 'lucide-react';
 import { MemberAccount, ChatThread, ChatMessage } from '../types';
 import {
@@ -18,16 +21,25 @@ import {
 
 interface AdminChatManagerProps {
   members: MemberAccount[];
+  preselectedMemberAlias?: string | null;
+  onClearPreselectedMember?: () => void;
 }
 
-export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) => {
+export const AdminChatManager: React.FC<AdminChatManagerProps> = ({
+  members,
+  preselectedMemberAlias,
+  onClearPreselectedMember
+}) => {
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [replyText, setReplyText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sidebarTab, setSidebarTab] = useState<'threads' | 'members'>('threads');
   const [threadToDelete, setThreadToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [statusNotice, setStatusNotice] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -36,7 +48,15 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
-  // Subscribe to all chat threads
+  // Automatically select thread if preselected from Member list
+  useEffect(() => {
+    if (preselectedMemberAlias) {
+      setSelectedThreadId(preselectedMemberAlias);
+      onClearPreselectedMember?.();
+    }
+  }, [preselectedMemberAlias, onClearPreselectedMember]);
+
+  // Subscribe to all chat threads in real time
   useEffect(() => {
     const unsubscribe = subscribeToChatThreads((updatedThreads) => {
       setThreads(updatedThreads);
@@ -47,7 +67,7 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
     };
   }, []);
 
-  // Subscribe to messages of selected thread
+  // Subscribe to messages of the selected thread in real time
   useEffect(() => {
     if (!selectedThreadId) {
       setMessages([]);
@@ -94,41 +114,35 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
       inputRef.current?.focus();
     } catch (err) {
       console.error('Failed to send reply from admin portal:', err);
+      // Restore draft text so admin doesn't lose it
       setReplyText(trimmed);
+      setStatusNotice('Message failed to transmit. Please retry.');
+      setTimeout(() => setStatusNotice(null), 4000);
     } finally {
       setIsSending(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSendReply();
-    }
-  };
-
   const handleConfirmDeleteThread = async () => {
-    if (!threadToDelete) return;
+    if (!threadToDelete || isDeleting) return;
+    setIsDeleting(true);
     try {
       await deleteChatThread(threadToDelete);
-      if (selectedThreadId === threadToDelete) {
+      if (selectedThreadId?.toLowerCase() === threadToDelete.toLowerCase()) {
         setSelectedThreadId(null);
+        setMessages([]);
       }
+      setStatusNotice(`Chat with ${threadToDelete} deleted permanently from everywhere.`);
+      setTimeout(() => setStatusNotice(null), 4000);
     } catch (err) {
-      console.error('Failed to delete thread:', err);
+      console.error('Failed to delete thread from everywhere:', err);
+      setStatusNotice('Failed to delete chat. Please check connection.');
+      setTimeout(() => setStatusNotice(null), 4000);
     } finally {
+      setIsDeleting(false);
       setThreadToDelete(null);
     }
   };
-
-  const filteredThreads = threads.filter((t) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      t.memberAlias.toLowerCase().includes(q) ||
-      (t.memberName && t.memberName.toLowerCase().includes(q)) ||
-      t.lastMessageText.toLowerCase().includes(q)
-    );
-  });
 
   const formatMessageTime = (dateIso: string) => {
     try {
@@ -139,9 +153,35 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
     }
   };
 
+  // Filter threads by search query
+  const filteredThreads = threads.filter((t) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      t.memberAlias.toLowerCase().includes(q) ||
+      (t.memberName && t.memberName.toLowerCase().includes(q)) ||
+      t.lastMessageText.toLowerCase().includes(q)
+    );
+  });
+
+  // Filter all members by search query
+  const filteredMembers = members.filter((m) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      m.alias.toLowerCase().includes(q) ||
+      m.name.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div className="w-full bg-black rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl flex flex-col h-[750px] max-h-[85vh] selection:bg-white selection:text-black">
-      {/* Top Header */}
+      {/* Top Banner Notice if any */}
+      {statusNotice && (
+        <div className="bg-zinc-900 border-b border-zinc-800 text-white text-xs font-mono px-4 py-2 text-center animate-fadeIn shrink-0">
+          {statusNotice}
+        </div>
+      )}
+
+      {/* Main Top Header */}
       <div className="h-14 px-5 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between text-white shrink-0">
         <div className="flex items-center gap-3">
           <span className="font-display tracking-[0.15em] text-sm uppercase font-bold text-white">
@@ -149,7 +189,7 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
           </span>
           {threads.length > 0 && (
             <span className="px-2 py-0.5 rounded-full text-xs font-mono bg-white text-black font-bold">
-              {threads.length}
+              {threads.length} {threads.length === 1 ? 'chat' : 'chats'}
             </span>
           )}
         </div>
@@ -157,12 +197,40 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
 
       {/* Main 2-Column Interface (Responsive for Mobile & Desktop) */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Left Side: Threads List */}
+        {/* Left Side: Threads / Members List */}
         <div
           className={`${
             selectedThreadId ? 'hidden sm:flex' : 'flex'
           } w-full sm:w-80 md:w-96 bg-black border-r border-zinc-800 flex-col shrink-0`}
         >
+          {/* Tabs: Active Chats vs All Members */}
+          <div className="flex border-b border-zinc-800 bg-zinc-950">
+            <button
+              type="button"
+              onClick={() => setSidebarTab('threads')}
+              className={`flex-1 py-2.5 px-3 text-xs font-display uppercase tracking-wider font-semibold transition border-b-2 flex items-center justify-center gap-1.5 ${
+                sidebarTab === 'threads'
+                  ? 'border-white text-white bg-zinc-900/50'
+                  : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              <span>Active ({threads.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSidebarTab('members')}
+              className={`flex-1 py-2.5 px-3 text-xs font-display uppercase tracking-wider font-semibold transition border-b-2 flex items-center justify-center gap-1.5 ${
+                sidebarTab === 'members'
+                  ? 'border-white text-white bg-zinc-900/50'
+                  : 'border-transparent text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>All Members ({members.length})</span>
+            </button>
+          </div>
+
           {/* Search Bar */}
           <div className="p-3 bg-zinc-950 border-b border-zinc-800">
             <div className="relative">
@@ -171,65 +239,129 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search member chats..."
+                placeholder={sidebarTab === 'threads' ? 'Search active chats...' : 'Search registered members...'}
                 className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs font-body placeholder-zinc-500 focus:outline-none focus:border-white transition"
               />
             </div>
           </div>
 
-          {/* List of Member Threads */}
+          {/* List Content */}
           <div className="flex-1 overflow-y-auto divide-y divide-zinc-900">
-            {filteredThreads.length === 0 ? (
-              <div className="p-8 text-center text-zinc-500 text-xs font-mono">
-                No active transmissions. When a member messages via <code className="text-white">/#/chat</code>, it appears here.
-              </div>
-            ) : (
-              filteredThreads.map((thread) => {
-                const isSelected = selectedThreadId === thread.id;
-                const hasUnread = (thread.unreadForAdminCount || 0) > 0;
-
-                return (
-                  <div
-                    key={thread.id}
-                    onClick={() => {
-                      setSelectedThreadId(thread.id);
-                      markChatThreadReadByAdmin(thread.id).catch(console.warn);
-                    }}
-                    className={`p-3.5 cursor-pointer transition flex items-center gap-3 ${
-                      isSelected
-                        ? 'bg-zinc-900 border-l-2 border-l-white text-white'
-                        : 'hover:bg-zinc-950 text-zinc-300'
-                    }`}
+            {sidebarTab === 'threads' ? (
+              filteredThreads.length === 0 ? (
+                <div className="p-8 text-center text-zinc-500 text-xs font-mono space-y-3">
+                  <p>No active chat threads found.</p>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarTab('members')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white font-display text-[11px] uppercase tracking-wider transition"
                   >
-                    <div className="w-11 h-11 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300 flex items-center justify-center shrink-0">
-                      <User className="w-5 h-5" />
-                    </div>
+                    <MessageSquarePlus className="w-3.5 h-3.5 text-white" />
+                    <span>Start Chat With a Member</span>
+                  </button>
+                </div>
+              ) : (
+                filteredThreads.map((thread) => {
+                  const isSelected = selectedThreadId?.toLowerCase() === thread.id.toLowerCase();
+                  const hasUnread = (thread.unreadForAdminCount || 0) > 0;
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="font-display text-xs uppercase tracking-wider text-white font-semibold truncate">
-                          {thread.memberAlias}
-                        </span>
-                        <span className="text-[10px] font-mono text-zinc-500 shrink-0">
-                          {formatMessageTime(thread.lastMessageAt)}
-                        </span>
+                  return (
+                    <div
+                      key={thread.id}
+                      onClick={() => {
+                        setSelectedThreadId(thread.id);
+                        markChatThreadReadByAdmin(thread.id).catch(console.warn);
+                      }}
+                      className={`p-3.5 cursor-pointer transition flex items-center gap-3 ${
+                        isSelected
+                          ? 'bg-zinc-900 border-l-2 border-l-white text-white'
+                          : 'hover:bg-zinc-950 text-zinc-300'
+                      }`}
+                    >
+                      <div className="w-11 h-11 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300 flex items-center justify-center shrink-0">
+                        <User className="w-5 h-5" />
                       </div>
-                      <p className="text-xs font-body text-zinc-400 truncate">
-                        {thread.lastSenderRole === 'admin' ? (
-                          <span className="text-zinc-500 font-mono text-[11px] mr-1">You:</span>
-                        ) : null}
-                        {thread.lastMessageText}
-                      </p>
-                    </div>
 
-                    {hasUnread && (
-                      <span className="w-5 h-5 rounded-full bg-white text-black text-[10px] font-bold font-mono flex items-center justify-center shrink-0 shadow">
-                        {thread.unreadForAdminCount}
-                      </span>
-                    )}
-                  </div>
-                );
-              })
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="font-display text-xs uppercase tracking-wider text-white font-semibold truncate">
+                            {thread.memberAlias}
+                          </span>
+                          <span className="text-[10px] font-mono text-zinc-500 shrink-0">
+                            {formatMessageTime(thread.lastMessageAt)}
+                          </span>
+                        </div>
+                        <p className="text-xs font-body text-zinc-400 truncate">
+                          {thread.lastSenderRole === 'admin' ? (
+                            <span className="text-zinc-500 font-mono text-[11px] mr-1">You:</span>
+                          ) : null}
+                          {thread.lastMessageText}
+                        </p>
+                      </div>
+
+                      {hasUnread && (
+                        <span className="w-5 h-5 rounded-full bg-white text-black text-[10px] font-bold font-mono flex items-center justify-center shrink-0 shadow">
+                          {thread.unreadForAdminCount}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })
+              )
+            ) : (
+              /* All Members Tab: allow opening chat with ANY member */
+              filteredMembers.length === 0 ? (
+                <div className="p-8 text-center text-zinc-500 text-xs font-mono">
+                  No members match your search.
+                </div>
+              ) : (
+                filteredMembers.map((mem) => {
+                  const isSelected = selectedThreadId?.toLowerCase() === mem.alias.toLowerCase();
+                  const existingThread = threads.find(
+                    (t) => t.memberAlias.toLowerCase() === mem.alias.toLowerCase()
+                  );
+
+                  return (
+                    <div
+                      key={mem.id}
+                      onClick={() => {
+                        setSelectedThreadId(mem.alias);
+                      }}
+                      className={`p-3.5 cursor-pointer transition flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'bg-zinc-900 border-l-2 border-l-white text-white'
+                          : 'hover:bg-zinc-950 text-zinc-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300 flex items-center justify-center shrink-0">
+                          <User className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="font-display text-xs uppercase tracking-wider text-white font-semibold block truncate">
+                            {mem.alias}
+                          </span>
+                          <span className="text-[11px] font-body text-zinc-400 block truncate">
+                            {mem.name}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        {existingThread ? (
+                          <span className="text-[10px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-full">
+                            Active Chat
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono text-white bg-white/10 hover:bg-white hover:text-black border border-white/20 px-2 py-0.5 rounded-full transition">
+                            Message
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )
             )}
           </div>
         </div>
@@ -263,17 +395,19 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
                     </span>
                     <span className="text-[11px] font-mono text-zinc-400 block leading-tight">
                       {selectedMemberAccount?.name ? `${selectedMemberAccount.name} • ` : ''}
-                      Member Account
+                      Member Channel
                     </span>
                   </div>
                 </div>
 
+                {/* Delete Entire Chat from Everywhere Button */}
                 <button
                   onClick={() => setThreadToDelete(selectedThreadId)}
-                  title="Delete Thread"
-                  className="p-2 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-zinc-900 transition"
+                  title="Delete Chat From Everywhere"
+                  className="px-3 py-1.5 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-zinc-900 border border-zinc-800 transition flex items-center gap-1.5 font-display text-[11px] uppercase tracking-wider"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4 text-red-400" />
+                  <span className="hidden sm:inline">Delete Chat</span>
                 </button>
               </div>
 
@@ -287,35 +421,43 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
                   </div>
                 </div>
 
-                {messages.map((msg) => {
-                  const isAdmin = msg.senderRole === 'admin';
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex w-full ${isAdmin ? 'justify-end' : 'justify-start'}`}
-                    >
+                {messages.length === 0 ? (
+                  <div className="py-16 text-center text-zinc-500 text-xs font-mono space-y-2">
+                    <p>No messages yet in this channel.</p>
+                    <p className="text-[11px] text-zinc-600">
+                      Send a message below to reach {selectedThreadId}.
+                    </p>
+                  </div>
+                ) : (
+                  messages.map((msg) => {
+                    const isAdmin = msg.senderRole === 'admin';
+                    return (
                       <div
-                        className={`max-w-[82%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed break-words shadow-md relative ${
-                          isAdmin
-                            ? 'bg-white text-black rounded-tr-sm'
-                            : 'bg-zinc-900 border border-zinc-800 text-white rounded-tl-sm'
-                        }`}
+                        key={msg.id}
+                        className={`flex w-full ${isAdmin ? 'justify-end' : 'justify-start'}`}
                       >
-                        <p className={`whitespace-pre-wrap select-text font-body ${isAdmin ? 'text-black font-medium' : 'text-zinc-100'}`}>
-                          {msg.text}
-                        </p>
-                        {/* Clean timestamp with zero tick marks */}
                         <div
-                          className={`mt-1 text-[10px] font-mono select-none flex ${
-                            isAdmin ? 'justify-end text-zinc-600 font-semibold' : 'justify-start text-zinc-400'
+                          className={`max-w-[82%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed break-words shadow-md relative ${
+                            isAdmin
+                              ? 'bg-white text-black rounded-tr-sm'
+                              : 'bg-zinc-900 border border-zinc-800 text-white rounded-tl-sm'
                           }`}
                         >
-                          <span>{formatMessageTime(msg.createdAt)}</span>
+                          <p className={`whitespace-pre-wrap select-text font-body ${isAdmin ? 'text-black font-medium' : 'text-zinc-100'}`}>
+                            {msg.text}
+                          </p>
+                          <div
+                            className={`mt-1 text-[10px] font-mono select-none flex ${
+                              isAdmin ? 'justify-end text-zinc-600 font-semibold' : 'justify-start text-zinc-400'
+                            }`}
+                          >
+                            <span>{formatMessageTime(msg.createdAt)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
                 <div ref={messagesEndRef} />
               </div>
 
@@ -327,9 +469,9 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
                     type="text"
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type a reply..."
-                    className="flex-1 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-sm font-body placeholder-zinc-500 focus:outline-none focus:border-white transition"
+                    placeholder={`Reply to ${selectedThreadId}...`}
+                    disabled={isSending}
+                    className="flex-1 px-4 py-3 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-sm font-body placeholder-zinc-500 focus:outline-none focus:border-white transition disabled:opacity-50"
                   />
                   <button
                     type="submit"
@@ -342,35 +484,47 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 text-xs font-mono p-4 text-center">
-              Select a member communication channel from the left panel.
+            <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 text-xs font-mono p-6 text-center space-y-3">
+              <Users className="w-8 h-8 text-zinc-600" />
+              <p>Select a member communication channel from the left panel.</p>
+              <button
+                type="button"
+                onClick={() => setSidebarTab('members')}
+                className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-white font-display text-xs uppercase tracking-wider transition"
+              >
+                Browse All Members
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal (Deletes from everywhere) */}
       {threadToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
           <div className="bg-zinc-950 border border-zinc-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
             <h3 className="text-sm font-display uppercase tracking-wider font-bold text-white mb-2">
-              Delete Thread with {threadToDelete}?
+              Delete Chat with {threadToDelete}?
             </h3>
-            <p className="text-xs font-body text-zinc-400 mb-6">
-              All messages in this direct line will be permanently removed.
+            <p className="text-xs font-body text-zinc-400 mb-6 leading-relaxed">
+              This will permanently delete all messages and this chat thread from everywhere (including the member&apos;s view and database). This action cannot be undone.
             </p>
             <div className="flex items-center justify-end gap-2">
               <button
+                type="button"
+                disabled={isDeleting}
                 onClick={() => setThreadToDelete(null)}
-                className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-body transition"
+                className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-body transition disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
+                type="button"
+                disabled={isDeleting}
                 onClick={handleConfirmDeleteThread}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-display tracking-wider uppercase font-semibold transition"
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-display tracking-wider uppercase font-semibold transition disabled:opacity-50"
               >
-                Delete
+                {isDeleting ? 'Erasing...' : 'Delete From Everywhere'}
               </button>
             </div>
           </div>

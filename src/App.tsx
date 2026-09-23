@@ -185,7 +185,7 @@ export default function App() {
   return (
     <div className="relative min-h-screen w-full max-w-full bg-black text-white font-body overflow-x-hidden selection:bg-white selection:text-black">
       {/* Background image configured in admin portal - clearly visible with no dimming */}
-      {settings.backgroundImage && (
+      {settings.backgroundImage && currentRoute !== 'chat' && (
         <div
           id="custom-background-image"
           className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat pointer-events-none"

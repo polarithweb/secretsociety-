@@ -13,7 +13,6 @@ import {
   where,
   deleteDoc
 } from 'firebase/firestore';
-import defaultChatConfigData from '../../firebase-chat-config.json';
 import primaryFirebaseConfig from '../../firebase-applet-config.json';
 import { ChatMessage, ChatThread, ChatFirebaseConfig } from '../types';
 
@@ -30,8 +29,15 @@ export function getChatFirebaseConfig(): ChatFirebaseConfig {
     const saved = localStorage.getItem(CHAT_CONFIG_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed && parsed.projectId && parsed.apiKey) {
+      if (
+        parsed &&
+        parsed.projectId &&
+        parsed.projectId !== 'grounded-bonfire-ms7sz-chat' &&
+        parsed.apiKey
+      ) {
         return { ...parsed, isCustomProject: true };
+      } else {
+        localStorage.removeItem(CHAT_CONFIG_KEY);
       }
     }
   } catch (e) {
@@ -39,15 +45,15 @@ export function getChatFirebaseConfig(): ChatFirebaseConfig {
   }
 
   return {
-    projectId: defaultChatConfigData.projectId || primaryFirebaseConfig.projectId,
-    appId: defaultChatConfigData.appId || primaryFirebaseConfig.appId,
-    apiKey: defaultChatConfigData.apiKey || primaryFirebaseConfig.apiKey,
-    authDomain: defaultChatConfigData.authDomain || primaryFirebaseConfig.authDomain,
-    firestoreDatabaseId: defaultChatConfigData.firestoreDatabaseId || primaryFirebaseConfig.firestoreDatabaseId,
-    storageBucket: defaultChatConfigData.storageBucket || primaryFirebaseConfig.storageBucket,
-    messagingSenderId: defaultChatConfigData.messagingSenderId || primaryFirebaseConfig.messagingSenderId,
+    projectId: primaryFirebaseConfig.projectId,
+    appId: primaryFirebaseConfig.appId,
+    apiKey: primaryFirebaseConfig.apiKey,
+    authDomain: primaryFirebaseConfig.authDomain,
+    firestoreDatabaseId: primaryFirebaseConfig.firestoreDatabaseId,
+    storageBucket: primaryFirebaseConfig.storageBucket,
+    messagingSenderId: primaryFirebaseConfig.messagingSenderId,
     isCustomProject: false,
-    chatInstanceLabel: 'Dedicated Chat Firebase App Instance'
+    chatInstanceLabel: 'Primary Cloud Firestore Instance'
   };
 }
 
@@ -57,7 +63,6 @@ export function getChatFirebaseConfig(): ChatFirebaseConfig {
 export function saveChatFirebaseConfig(config: ChatFirebaseConfig): void {
   try {
     localStorage.setItem(CHAT_CONFIG_KEY, JSON.stringify(config));
-    // Trigger window reload so the newly configured secondary Firebase project initializes cleanly
     window.location.reload();
   } catch (e) {
     console.error('Failed to save chat Firebase config:', e);
@@ -82,38 +87,42 @@ export function resetChatFirebaseConfig(): void {
 function initChatAppAndDb(): { app: FirebaseApp; db: Firestore } {
   const config = getChatFirebaseConfig();
   const existingApps = getApps();
-  let chatApp = existingApps.find((a) => a.name === CHAT_APP_NAME);
 
-  if (!chatApp) {
+  // If the admin configured a custom external secondary project
+  if (config.isCustomProject && config.projectId && config.projectId !== primaryFirebaseConfig.projectId) {
     try {
-      chatApp = initializeApp(
-        {
-          apiKey: config.apiKey,
-          authDomain: config.authDomain,
-          projectId: config.projectId,
-          storageBucket: config.storageBucket,
-          messagingSenderId: config.messagingSenderId,
-          appId: config.appId
-        },
-        CHAT_APP_NAME
-      );
+      let customApp = existingApps.find((a) => a.name === CHAT_APP_NAME);
+      if (!customApp) {
+        customApp = initializeApp(
+          {
+            apiKey: config.apiKey,
+            authDomain: config.authDomain,
+            projectId: config.projectId,
+            storageBucket: config.storageBucket,
+            messagingSenderId: config.messagingSenderId,
+            appId: config.appId
+          },
+          CHAT_APP_NAME
+        );
+      }
+
+      const customDb = config.firestoreDatabaseId
+        ? getFirestore(customApp, config.firestoreDatabaseId)
+        : getFirestore(customApp);
+
+      return { app: customApp, db: customDb };
     } catch (e) {
-      console.warn('Failed to initialize dedicated chat app with custom name, falling back to default:', e);
-      chatApp = existingApps.length > 0 ? getApp() : initializeApp(primaryFirebaseConfig);
+      console.warn('Failed to initialize custom external Firebase chat app, using default:', e);
     }
   }
 
-  let chatDb: Firestore;
-  try {
-    chatDb = config.firestoreDatabaseId
-      ? getFirestore(chatApp, config.firestoreDatabaseId)
-      : getFirestore(chatApp);
-  } catch (e) {
-    console.warn('Failed to initialize Firestore on dedicated database, falling back:', e);
-    chatDb = getFirestore(chatApp);
-  }
+  // Default: use the verified, active Firebase instance with valid firestoreDatabaseId
+  const primaryApp = existingApps.length > 0 ? getApp() : initializeApp(primaryFirebaseConfig);
+  const primaryDb = primaryFirebaseConfig.firestoreDatabaseId
+    ? getFirestore(primaryApp, primaryFirebaseConfig.firestoreDatabaseId)
+    : getFirestore(primaryApp);
 
-  return { app: chatApp, db: chatDb };
+  return { app: primaryApp, db: primaryDb };
 }
 
 const { db: chatFirestore } = initChatAppAndDb();

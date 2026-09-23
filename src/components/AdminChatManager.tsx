@@ -5,21 +5,16 @@ import {
   Search,
   CheckCheck,
   Trash2,
-  Database,
-  X,
-  Radio,
-  Lock
+  Lock,
+  ArrowLeft
 } from 'lucide-react';
-import { MemberAccount, ChatThread, ChatMessage, ChatFirebaseConfig } from '../types';
+import { MemberAccount, ChatThread, ChatMessage } from '../types';
 import {
   subscribeToChatThreads,
   subscribeToChatMessages,
   sendChatMessage,
   markChatThreadReadByAdmin,
-  deleteChatThread,
-  getChatFirebaseConfig,
-  saveChatFirebaseConfig,
-  resetChatFirebaseConfig
+  deleteChatThread
 } from '../lib/firebaseChat';
 
 interface AdminChatManagerProps {
@@ -35,35 +30,25 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
   const [searchQuery, setSearchQuery] = useState('');
   const [threadToDelete, setThreadToDelete] = useState<string | null>(null);
 
-  // Secondary Firebase Project Modal state
-  const [showConfigModal, setShowConfigModal] = useState(false);
-  const [chatConfig, setChatConfig] = useState<ChatFirebaseConfig>(getChatFirebaseConfig());
-  const [customProjectId, setCustomProjectId] = useState(chatConfig.projectId);
-  const [customApiKey, setCustomApiKey] = useState(chatConfig.apiKey);
-  const [customAppId, setCustomAppId] = useState(chatConfig.appId);
-  const [customAuthDomain, setCustomAuthDomain] = useState(chatConfig.authDomain || '');
-  const [customDbId, setCustomDbId] = useState(chatConfig.firestoreDatabaseId || '');
-  const [configSuccessMsg, setConfigSuccessMsg] = useState<string | null>(null);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
+  // Subscribe to all chat threads
   useEffect(() => {
     const unsubscribe = subscribeToChatThreads((updatedThreads) => {
       setThreads(updatedThreads);
-      if (!selectedThreadId && updatedThreads.length > 0) {
-        setSelectedThreadId(updatedThreads[0].id);
-      }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [selectedThreadId]);
+  }, []);
 
+  // Subscribe to messages of selected thread
   useEffect(() => {
     if (!selectedThreadId) {
       setMessages([]);
@@ -87,10 +72,13 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
   );
 
   const handleSendReply = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!selectedThreadId || !replyText.trim() || isSending) return;
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const trimmed = replyText.trim();
+    if (!selectedThreadId || !trimmed || isSending) return;
 
-    const textToSend = replyText.trim();
     setReplyText('');
     setIsSending(true);
 
@@ -98,14 +86,17 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
       await sendChatMessage({
         threadId: selectedThreadId,
         memberAlias: selectedThreadId,
-        memberName: selectedMemberAccount?.name,
+        memberName: selectedMemberAccount?.name || '',
         senderRole: 'admin',
         senderAlias: 'Admin',
-        text: textToSend
+        text: trimmed
       });
       setTimeout(() => scrollToBottom('smooth'), 50);
+      inputRef.current?.focus();
     } catch (err) {
-      console.error('Failed to send reply:', err);
+      console.error('Failed to send reply from admin portal:', err);
+      // Restore draft text so admin doesn't lose it
+      setReplyText(trimmed);
     } finally {
       setIsSending(false);
     }
@@ -123,34 +114,13 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
     try {
       await deleteChatThread(threadToDelete);
       if (selectedThreadId === threadToDelete) {
-        const remaining = threads.filter((t) => t.id !== threadToDelete);
-        setSelectedThreadId(remaining.length > 0 ? remaining[0].id : null);
+        setSelectedThreadId(null);
       }
     } catch (err) {
       console.error('Failed to delete thread:', err);
     } finally {
       setThreadToDelete(null);
     }
-  };
-
-  const handleSaveSecondaryConfig = (e: React.FormEvent) => {
-    e.preventDefault();
-    const updated: ChatFirebaseConfig = {
-      projectId: customProjectId.trim(),
-      apiKey: customApiKey.trim(),
-      appId: customAppId.trim(),
-      authDomain: customAuthDomain.trim() || `${customProjectId.trim()}.firebaseapp.com`,
-      firestoreDatabaseId: customDbId.trim() || undefined,
-      isCustomProject: true,
-      chatInstanceLabel: 'Custom Secondary Firebase Project'
-    };
-    saveChatFirebaseConfig(updated);
-    setConfigSuccessMsg('Secondary Firebase Project saved. Reloading connection...');
-  };
-
-  const handleResetSecondaryConfig = () => {
-    resetChatFirebaseConfig();
-    setConfigSuccessMsg('Reset to default dedicated instance. Reloading...');
   };
 
   const filteredThreads = threads.filter((t) => {
@@ -173,9 +143,9 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
 
   return (
     <div className="w-full bg-[#111b21] rounded-2xl overflow-hidden border border-[#222d34] shadow-2xl flex flex-col h-[750px] max-h-[85vh]">
-      {/* Top Header */}
+      {/* WhatsApp Header */}
       <div className="h-14 px-4 bg-[#202c33] border-b border-[#222d34] flex items-center justify-between text-[#e9edef] shrink-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <span className="font-semibold text-white text-base">Direct Member Chats</span>
           {threads.length > 0 && (
             <span className="px-2 py-0.5 rounded-full text-xs bg-[#00a884] text-white font-medium">
@@ -183,20 +153,16 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
             </span>
           )}
         </div>
-        <button
-          onClick={() => setShowConfigModal(true)}
-          className="px-2.5 py-1 rounded bg-[#2a3942] hover:bg-[#374248] text-[#d1d7db] text-xs font-mono transition flex items-center gap-1.5"
-          title="Configure secondary Firebase project"
-        >
-          <Database className="w-3.5 h-3.5 text-[#00a884]" />
-          <span>Firebase Project</span>
-        </button>
       </div>
 
-      {/* Main WhatsApp 2-Column Interface */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Side: Chat Threads List */}
-        <div className="w-full sm:w-80 md:w-96 bg-[#111b21] border-r border-[#222d34] flex flex-col shrink-0">
+      {/* Main WhatsApp 2-Column Interface (Responsive for Mobile & Desktop) */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Side: Threads List (Visible on desktop, or on mobile when no chat is open) */}
+        <div
+          className={`${
+            selectedThreadId ? 'hidden sm:flex' : 'flex'
+          } w-full sm:w-80 md:w-96 bg-[#111b21] border-r border-[#222d34] flex-col shrink-0`}
+        >
           {/* Search Bar */}
           <div className="p-2.5 bg-[#111b21] border-b border-[#222d34]">
             <div className="relative">
@@ -206,16 +172,16 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search or start new chat"
-                className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#202c33] text-white text-xs placeholder-[#8696a0] focus:outline-none"
+                className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#202c33] text-white text-xs placeholder-[#8696a0] focus:outline-none"
               />
             </div>
           </div>
 
-          {/* List */}
+          {/* List of Member Threads */}
           <div className="flex-1 overflow-y-auto divide-y divide-[#202c33]">
             {filteredThreads.length === 0 ? (
               <div className="p-8 text-center text-[#8696a0] text-xs">
-                No chats yet. When a member logs into /#/chat and sends a message, it appears here.
+                No chats yet. When a member sends a message at <code className="text-[#00a884]">/#/chat</code>, it appears here.
               </div>
             ) : (
               filteredThreads.map((thread) => {
@@ -266,14 +232,27 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
           </div>
         </div>
 
-        {/* Right Side: Active Chat Window */}
-        <div className="hidden sm:flex flex-1 flex-col bg-[#0b141a] relative">
+        {/* Right Side: Active Chat Window (Visible on desktop, or on mobile when a chat is open) */}
+        <div
+          className={`${
+            selectedThreadId ? 'flex' : 'hidden sm:flex'
+          } flex-1 flex-col bg-[#0b141a] relative`}
+        >
           {selectedThreadId ? (
             <>
               {/* WhatsApp Chat Top Bar */}
               <div className="h-16 px-4 bg-[#202c33] border-b border-[#222d34] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#374248] flex items-center justify-center text-[#aebac1]">
+                  {/* Back button for mobile */}
+                  <button
+                    onClick={() => setSelectedThreadId(null)}
+                    className="sm:hidden p-1.5 -ml-1 text-[#aebac1] hover:text-white rounded-full transition"
+                    title="Back to chats"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+
+                  <div className="w-10 h-10 rounded-full bg-[#374248] flex items-center justify-center text-[#aebac1] shrink-0">
                     <User className="w-5 h-5" />
                   </div>
                   <div>
@@ -296,7 +275,7 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
                 </button>
               </div>
 
-              {/* Message List */}
+              {/* Message History */}
               <div
                 className="flex-1 overflow-y-auto p-4 space-y-2"
                 style={{
@@ -305,11 +284,11 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
                     'radial-gradient(circle at 50% 50%, rgba(17, 27, 33, 0.6) 0%, rgba(11, 20, 26, 0.95) 100%)'
                 }}
               >
-                {/* Notice pill */}
+                {/* Privacy indicator */}
                 <div className="flex justify-center my-2">
                   <div className="px-3 py-1.5 rounded-lg bg-[#182229] border border-[#222d34] text-[#ffd279] text-[11px] flex items-center gap-1.5 shadow-sm">
                     <Lock className="w-3 h-3 text-[#ffd279] shrink-0" />
-                    <span>Direct text chat with {selectedThreadId}. Only text allowed.</span>
+                    <span>Direct chat with {selectedThreadId}. Text only.</span>
                   </div>
                 </div>
 
@@ -321,16 +300,14 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
                       className={`flex w-full ${isAdmin ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[75%] px-3.5 py-2 rounded-lg text-[14px] leading-relaxed break-words shadow ${
+                        className={`max-w-[82%] sm:max-w-[70%] px-3.5 py-2 rounded-lg text-[14px] leading-relaxed break-words shadow ${
                           isAdmin
                             ? 'bg-[#005c4b] text-[#e9edef] rounded-tr-none'
                             : 'bg-[#202c33] text-[#e9edef] rounded-tl-none'
                         }`}
                       >
                         <p className="whitespace-pre-wrap select-text">{msg.text}</p>
-                        <div
-                          className={`flex items-center gap-1 justify-end mt-1 text-[11px] text-[#8696a0] select-none`}
-                        >
+                        <div className="flex items-center gap-1 justify-end mt-1 text-[11px] text-[#8696a0] select-none">
                           <span>{formatMessageTime(msg.createdAt)}</span>
                           {isAdmin && (
                             <CheckCheck
@@ -347,15 +324,16 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* WhatsApp Bottom Input Bar: Only Text Input + Single Send Button */}
+              {/* WhatsApp Input Bar: Type text & Send button */}
               <div className="p-3 bg-[#202c33] border-t border-[#222d34] shrink-0">
                 <form onSubmit={handleSendReply} className="flex items-center gap-2">
                   <input
+                    ref={inputRef}
                     type="text"
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder="Type a message"
+                    placeholder="Type a message..."
                     className="flex-1 px-4 py-2.5 rounded-lg bg-[#2a3942] text-white text-sm placeholder-[#8696a0] focus:outline-none"
                   />
                   <button
@@ -369,7 +347,7 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-[#8696a0] text-sm">
+            <div className="flex-1 flex flex-col items-center justify-center text-[#8696a0] text-sm p-4 text-center">
               Select a chat from the left to start messaging.
             </div>
           )}
@@ -380,7 +358,9 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
       {threadToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-[#202c33] border border-[#2a3942] rounded-2xl max-w-sm w-full p-6 shadow-2xl">
-            <h3 className="text-base font-semibold text-white mb-2">Delete chat with {threadToDelete}?</h3>
+            <h3 className="text-base font-semibold text-white mb-2">
+              Delete chat with {threadToDelete}?
+            </h3>
             <p className="text-xs text-[#8696a0] mb-6">
               Messages will be permanently removed.
             </p>
@@ -398,83 +378,6 @@ export const AdminChatManager: React.FC<AdminChatManagerProps> = ({ members }) =
                 Delete
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Secondary Firebase Project Configuration Modal */}
-      {showConfigModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#202c33] border border-[#2a3942] rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-[#2a3942] mb-4">
-              <h3 className="text-base font-semibold text-white">Chat Firebase Project</h3>
-              <button
-                onClick={() => {
-                  setShowConfigModal(false);
-                  setConfigSuccessMsg(null);
-                }}
-                className="p-1 text-[#8696a0] hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {configSuccessMsg && (
-              <div className="mb-4 p-2.5 rounded bg-emerald-950/80 border border-emerald-500/50 text-emerald-200 text-xs font-mono">
-                {configSuccessMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveSecondaryConfig} className="space-y-3">
-              <div>
-                <label className="block text-xs text-[#8696a0] mb-1 font-mono">Project ID</label>
-                <input
-                  type="text"
-                  required
-                  value={customProjectId}
-                  onChange={(e) => setCustomProjectId(e.target.value)}
-                  className="w-full px-3 py-2 rounded bg-[#2a3942] text-white text-xs focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-[#8696a0] mb-1 font-mono">API Key</label>
-                <input
-                  type="text"
-                  required
-                  value={customApiKey}
-                  onChange={(e) => setCustomApiKey(e.target.value)}
-                  className="w-full px-3 py-2 rounded bg-[#2a3942] text-white text-xs focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-[#8696a0] mb-1 font-mono">App ID</label>
-                <input
-                  type="text"
-                  required
-                  value={customAppId}
-                  onChange={(e) => setCustomAppId(e.target.value)}
-                  className="w-full px-3 py-2 rounded bg-[#2a3942] text-white text-xs focus:outline-none"
-                />
-              </div>
-
-              <div className="pt-3 flex items-center justify-between border-t border-[#2a3942]">
-                <button
-                  type="button"
-                  onClick={handleResetSecondaryConfig}
-                  className="px-3 py-1.5 rounded bg-[#2a3942] hover:bg-[#374248] text-xs text-[#8696a0]"
-                >
-                  Reset
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded bg-[#00a884] hover:bg-[#02906f] text-white text-xs font-semibold"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

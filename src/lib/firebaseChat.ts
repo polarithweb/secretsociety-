@@ -167,6 +167,16 @@ function persistLocalData(): void {
   }
 }
 
+function cleanForFirestore<T extends Record<string, any>>(obj: T): T {
+  const result: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result as T;
+}
+
 /**
  * Strictly sanitize text: strip HTML and forbid images or data URLs
  */
@@ -218,8 +228,8 @@ export async function sendChatMessage(params: {
 
   // 2. Update/create thread in memory
   const existingThread = inMemoryThreads.get(params.threadId);
-  const unreadAdminInc = params.senderRole === 'member' ? (existingThread?.unreadForAdminCount || 0) + 1 : 0;
-  const unreadMemberInc = params.senderRole === 'admin' ? (existingThread?.unreadForMemberCount || 0) + 1 : 0;
+  const unreadAdminInc = params.senderRole === 'member' ? Number((existingThread?.unreadForAdminCount || 0) + 1) : 0;
+  const unreadMemberInc = params.senderRole === 'admin' ? Number((existingThread?.unreadForMemberCount || 0) + 1) : 0;
 
   const updatedThread: ChatThread = {
     id: params.threadId,
@@ -237,15 +247,15 @@ export async function sendChatMessage(params: {
   inMemoryThreads.set(params.threadId, updatedThread);
   persistLocalData();
 
-  // 3. Persist message and thread to dedicated Chat Firestore instance
+  // 3. Persist message and thread to Chat Firestore instance
   try {
     const msgDocRef = doc(CHAT_MESSAGES_COLLECTION, messageId);
-    await setDoc(msgDocRef, newMessage);
+    await setDoc(msgDocRef, cleanForFirestore(newMessage));
 
     const threadDocRef = doc(CHAT_THREADS_COLLECTION, params.threadId);
-    await setDoc(threadDocRef, updatedThread);
+    await setDoc(threadDocRef, cleanForFirestore(updatedThread));
   } catch (err) {
-    console.warn('Dedicated Chat Firestore save warning (message retained in active session):', err);
+    console.warn('Chat Firestore save warning (retained in active session):', err);
   }
 
   return newMessage;
@@ -269,10 +279,10 @@ export function subscribeToChatMessages(
   callback(filterAndSort());
 
   try {
+    // Note: Querying on threadId without orderBy avoids requiring a Firestore composite index
     const q = query(
       CHAT_MESSAGES_COLLECTION,
-      where('threadId', '==', threadId),
-      orderBy('createdAt', 'asc')
+      where('threadId', '==', threadId)
     );
 
     const unsubscribe = onSnapshot(

@@ -15,9 +15,10 @@ import { MemberInfoPortal } from './components/MemberInfoPortal';
 import { KnowledgePortal } from './components/KnowledgePortal';
 import { CouncilVideosPortal } from './components/CouncilVideosPortal';
 import { MemberChatPortal } from './components/MemberChatPortal';
+import { UnifiedMemberPortal } from './components/UnifiedMemberPortal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
-export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge' | 'videos' | 'chat';
+export type AppRoute = 'candidate' | 'admin' | 'info' | 'knowledge' | 'videos' | 'chat' | 'member';
 
 export default function App() {
   const [settings, setSettings] = useState<SocietySettings>(DEFAULT_SETTINGS);
@@ -29,6 +30,17 @@ export default function App() {
   const detectRoute = (): AppRoute => {
     const path = window.location.pathname.toLowerCase();
     const hash = window.location.hash.toLowerCase();
+
+    if (
+      hash === '#/member' ||
+      hash === '#member' ||
+      hash.startsWith('#/member') ||
+      path.endsWith('/member') ||
+      path.endsWith('/member/') ||
+      path.includes('/member')
+    ) {
+      return 'member';
+    }
 
     if (
       hash === '#/chat' ||
@@ -157,7 +169,7 @@ export default function App() {
   // Return to main candidate view
   const handleNavigateToCandidate = () => {
     try {
-      let basePath = window.location.pathname.replace(/\/(admin|info|knowledge|videos|chat)\/?$/i, '');
+      let basePath = window.location.pathname.replace(/\/(admin|info|knowledge|videos|chat|member)\/?$/i, '');
       if (!basePath) basePath = '/';
       window.history.pushState({}, '', basePath);
       window.location.hash = '';
@@ -165,6 +177,26 @@ export default function App() {
       window.location.hash = '';
     }
     setCurrentRoute('candidate');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigateToMember = () => {
+    try {
+      window.location.hash = '#/member';
+    } catch (e) {}
+    setCurrentRoute('member');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigateToRoute = (route: AppRoute) => {
+    if (route === 'candidate') {
+      handleNavigateToCandidate();
+      return;
+    }
+    try {
+      window.location.hash = `#/${route}`;
+    } catch (e) {}
+    setCurrentRoute(route);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -205,6 +237,12 @@ export default function App() {
                   Loading...
                 </div>
               </div>
+            ) : currentRoute === 'member' ? (
+              <UnifiedMemberPortal
+                settings={settings}
+                onNavigateToRoute={handleNavigateToRoute}
+                onNavigateToCandidate={handleNavigateToCandidate}
+              />
             ) : currentRoute === 'admin' ? (
               <AdminPortal
                 settings={settings}
@@ -216,19 +254,22 @@ export default function App() {
             ) : currentRoute === 'info' ? (
               <MemberInfoPortal
                 settings={settings}
+                onNavigateToCandidate={handleNavigateToMember}
               />
             ) : currentRoute === 'knowledge' ? (
               <KnowledgePortal
                 settings={settings}
+                onNavigateToCandidate={handleNavigateToMember}
               />
             ) : currentRoute === 'videos' ? (
               <CouncilVideosPortal
                 settings={settings}
+                onNavigateToCandidate={handleNavigateToMember}
               />
             ) : currentRoute === 'chat' ? (
               <MemberChatPortal
                 settings={settings}
-                onBack={handleNavigateToCandidate}
+                onBack={handleNavigateToMember}
               />
             ) : (
               <CandidateForm

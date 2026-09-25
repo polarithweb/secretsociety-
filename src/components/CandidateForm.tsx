@@ -4,7 +4,8 @@ import {
   FileText,
   Send,
   User,
-  Fingerprint
+  Fingerprint,
+  Shield
 } from 'lucide-react';
 import { Question, SocietySettings, Answersheet, CandidateAnswer } from '../types';
 import { submitAnswersheet } from '../lib/firebase';
@@ -549,6 +550,17 @@ export const CandidateForm: React.FC<CandidateFormProps> = ({
               </>
             )}
           </button>
+        </div>
+
+        {/* Member Access Portal Link */}
+        <div className="pt-8 border-t border-white/10 text-center">
+          <a
+            href="#/member"
+            className="inline-flex items-center gap-2 font-mono text-xs text-white/50 hover:text-white transition-colors"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>Initiated Operative? Access Member Hub (/#/member)</span>
+          </a>
         </div>
       </form>
     </div>

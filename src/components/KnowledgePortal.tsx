@@ -17,6 +17,7 @@ import {
   Check,
   ChevronRight,
   ShieldCheck,
+  Shield,
   ExternalLink
 } from 'lucide-react';
 import { KnowledgeArticle, MemberAccount, SocietySettings } from '../types';
@@ -272,9 +273,22 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
               </button>
             </form>
 
-            <div className="pt-2 border-t border-white/10 text-center font-mono text-[10px] text-white/40 space-y-1">
+            <div className="pt-2 border-t border-white/10 text-center font-mono text-[10px] text-white/40 space-y-2">
               <p>Same credentials as Member Info Portal.</p>
-              <p>Session persists across council modules.</p>
+              <div>
+                <a
+                  href="#/member"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigateToCandidate) onNavigateToCandidate();
+                    else window.location.hash = '#/member';
+                  }}
+                  className="inline-flex items-center gap-1.5 font-mono text-xs text-white/50 hover:text-white transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Return to Member Hub (/#/member)</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -323,8 +337,22 @@ export const KnowledgePortal: React.FC<KnowledgePortalProps> = ({
             </div>
           </div>
 
-          {/* Member Profile and Logout */}
+          {/* Member Profile, Member Hub and Logout */}
           <div className="flex items-center flex-wrap gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+            <a
+              href="#/member"
+              onClick={(e) => {
+                e.preventDefault();
+                if (onNavigateToCandidate) onNavigateToCandidate();
+                else window.location.hash = '#/member';
+              }}
+              className="px-3 py-1.5 rounded-lg border border-white/20 hover:bg-white/10 text-white/80 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-colors"
+              title="Return to Member Hub"
+            >
+              <Shield className="w-3.5 h-3.5 text-white" />
+              <span>Member Hub</span>
+            </a>
+
             <div className="flex items-center gap-2">
               <div className="text-right hidden sm:block">
                 <div className="font-mono text-xs text-white font-bold">

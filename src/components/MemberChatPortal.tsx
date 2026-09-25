@@ -3,7 +3,8 @@ import {
   Send,
   LogOut,
   Shield,
-  Lock
+  Lock,
+  ArrowLeft
 } from 'lucide-react';
 import { SocietySettings, MemberAccount, ChatMessage } from '../types';
 import { getMemberAccounts, saveMemberAccount } from '../lib/firebase';
@@ -21,7 +22,10 @@ interface MemberChatPortalProps {
 export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, onBack }) => {
   const [currentMember, setCurrentMember] = useState<MemberAccount | null>(() => {
     try {
-      const saved = sessionStorage.getItem('secretsociety_chat_member');
+      const saved =
+        sessionStorage.getItem('secretsociety_chat_member') ||
+        sessionStorage.getItem('secretsociety_member_session') ||
+        localStorage.getItem('secretsociety_member_session');
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -104,6 +108,10 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
       saveMemberAccount(updatedAccount).catch(console.warn);
 
       sessionStorage.setItem('secretsociety_chat_member', JSON.stringify(updatedAccount));
+      sessionStorage.setItem('secretsociety_member_session', JSON.stringify(updatedAccount));
+      try {
+        localStorage.setItem('secretsociety_member_session', JSON.stringify(updatedAccount));
+      } catch {}
       setCurrentMember(updatedAccount);
     } catch {
       setAuthError('Unable to connect. Please retry.');
@@ -114,6 +122,10 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
 
   const handleLogout = () => {
     sessionStorage.removeItem('secretsociety_chat_member');
+    sessionStorage.removeItem('secretsociety_member_session');
+    try {
+      localStorage.removeItem('secretsociety_member_session');
+    } catch {}
     setCurrentMember(null);
     setMessages([]);
     setAliasInput('');
@@ -221,6 +233,17 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
               {isAuthenticating ? 'Authenticating...' : 'Enter Channel'}
             </button>
           </form>
+
+          <div className="mt-6 pt-4 border-t border-zinc-900 text-center">
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex items-center gap-1.5 font-mono text-xs text-zinc-500 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to Member Hub (/#/member)</span>
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -232,6 +255,14 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
       {/* Top Header */}
       <header className="h-16 px-5 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between z-20 shrink-0 select-none shadow-md">
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="p-1.5 rounded-lg border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
+            title="Return to Member Hub"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
           <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 overflow-hidden shrink-0">
             {settings.sigilImage ? (
               <img
@@ -253,13 +284,26 @@ export const MemberChatPortal: React.FC<MemberChatPortalProps> = ({ settings, on
           </div>
         </div>
 
-        <button
-          onClick={handleLogout}
-          title="Logout"
-          className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 transition cursor-pointer"
-        >
-          <LogOut className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <a
+            href="#/member"
+            onClick={(e) => {
+              e.preventDefault();
+              onBack();
+            }}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 text-xs font-mono text-zinc-300 hover:text-white hover:bg-zinc-900 transition-colors"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>Member Hub</span>
+          </a>
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 transition cursor-pointer"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
       </header>
 
       {/* Message Stream */}

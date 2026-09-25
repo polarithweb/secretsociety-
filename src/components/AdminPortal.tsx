@@ -711,6 +711,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
         {/* Action buttons on header - full width on mobile */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          <a
+            href="#/member"
+            className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-white/20 hover:border-white/50 bg-black font-display text-[11px] sm:text-xs uppercase tracking-wider text-white transition-colors flex items-center justify-center gap-1.5 font-semibold"
+            title="Preview Member Hub"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            Member Hub
+          </a>
           <button
             type="button"
             onClick={onNavigateToCandidate}

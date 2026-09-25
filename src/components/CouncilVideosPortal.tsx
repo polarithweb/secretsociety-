@@ -12,7 +12,9 @@ import {
   Share2,
   Check,
   Youtube,
-  RefreshCw
+  RefreshCw,
+  Shield,
+  ArrowLeft
 } from 'lucide-react';
 import { CouncilVideo, MemberAccount, SocietySettings } from '../types';
 import {
@@ -246,6 +248,21 @@ export const CouncilVideosPortal: React.FC<CouncilVideosPortalProps> = ({
               )}
             </button>
           </form>
+
+          <div className="pt-3 border-t border-white/10 text-center">
+            <a
+              href="#/member"
+              onClick={(e) => {
+                e.preventDefault();
+                if (onNavigateToCandidate) onNavigateToCandidate();
+                else window.location.hash = '#/member';
+              }}
+              className="inline-flex items-center gap-1.5 font-mono text-xs text-white/50 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to Member Hub (/#/member)</span>
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -275,6 +292,20 @@ export const CouncilVideosPortal: React.FC<CouncilVideosPortalProps> = ({
 
         {/* Member Profile and Navigation Shortcuts */}
         <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="#/member"
+            onClick={(e) => {
+              e.preventDefault();
+              if (onNavigateToCandidate) onNavigateToCandidate();
+              else window.location.hash = '#/member';
+            }}
+            className="px-3 py-1.5 rounded-lg border border-white/20 hover:bg-white/10 text-white/80 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-colors"
+            title="Return to Member Hub"
+          >
+            <Shield className="w-3.5 h-3.5 text-white" />
+            <span>Member Hub</span>
+          </a>
+
           <div className="text-right">
             <div className="font-mono text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5 justify-end">
               <User className="w-3.5 h-3.5 text-white" />
